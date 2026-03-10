@@ -39,7 +39,6 @@ function normalizeSlug(value: string): string {
     .toLowerCase()
     .replace(/[^a-z0-9\s\-_.]/g, "")
     .replace(/\s+/g, "-")
-    .replace(/-+/g, "-")
     .replace(/^-|-$/g, "");
 }
 
@@ -261,7 +260,7 @@ export default function AssetsManager({ initialAssets }: AssetsManagerProps) {
                         <input
                           type="text"
                           value={editSlug}
-                          onChange={(e) => setEditSlug(normalizeSlug(e.target.value))}
+                          onChange={(e) => setEditSlug(e.target.value)}
                           className="w-full border border-[#202632] bg-[#0f141b] px-2 py-1 text-sm text-white outline-none focus:border-[#7dd3fc]"
                           autoFocus
                         />

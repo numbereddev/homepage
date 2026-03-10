@@ -42,6 +42,11 @@ export type PostInput = {
 // Project types
 // ---------------------------------------------------------------------------
 
+export type GalleryMedia = {
+  url: string;
+  kind: "image" | "video";
+};
+
 export type ProjectFrontmatter = {
   title: string;
   excerpt: string;
@@ -50,7 +55,7 @@ export type ProjectFrontmatter = {
   pinned: boolean;
   tags: string[];
   cover?: string;
-  gallery: string[]; // Array of image URLs
+  gallery: GalleryMedia[];
   isOpenSource: boolean;
   sourceUrl?: string; // Source code link (only relevant when isOpenSource is true)
 };
@@ -73,7 +78,7 @@ export type ProjectInput = {
   pinned?: boolean;
   tags?: string[];
   cover?: string;
-  gallery?: string[];
+  gallery?: GalleryMedia[];
   isOpenSource?: boolean;
   sourceUrl?: string;
   content: string;
@@ -204,7 +209,22 @@ function parseProjectFrontmatter(raw: Record<string, unknown>, slug: string): Pr
       : [],
     cover: typeof raw.cover === "string" ? raw.cover : undefined,
     gallery: Array.isArray(raw.gallery)
-      ? raw.gallery.filter((item): item is string => typeof item === "string")
+      ? raw.gallery.flatMap((item): GalleryMedia[] => {
+          if (typeof item === "string") {
+            return [{ url: item, kind: "image" }];
+          }
+
+          if (
+            item &&
+            typeof item === "object" &&
+            typeof item.url === "string" &&
+            (item.kind === "image" || item.kind === "video")
+          ) {
+            return [{ url: item.url, kind: item.kind }];
+          }
+
+          return [];
+        })
       : [],
     isOpenSource: typeof raw.isOpenSource === "boolean" ? raw.isOpenSource : false,
     sourceUrl: typeof raw.sourceUrl === "string" ? raw.sourceUrl : undefined,
@@ -491,7 +511,7 @@ export function getEmptyProjectTemplate() {
     pinned: false,
     tags: [] as string[],
     cover: "",
-    gallery: [] as string[],
+    gallery: [] as GalleryMedia[],
     isOpenSource: false,
     sourceUrl: "",
     content: `# New Project

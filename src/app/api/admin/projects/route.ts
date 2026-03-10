@@ -11,6 +11,16 @@ import {
 } from "@/lib/content";
 import { clearExpiredAdminSessions, getAdminSession } from "@/lib/db";
 
+type GalleryMediaInput = {
+  url?: string;
+  kind?: "image" | "video";
+};
+
+type GalleryMediaRecord = {
+  url: string;
+  kind: "image" | "video";
+};
+
 type CreateProjectBody = {
   originalSlug?: string;
   slug?: string;
@@ -21,7 +31,7 @@ type CreateProjectBody = {
   pinned?: boolean;
   tags?: string[];
   cover?: string;
-  gallery?: string[];
+  gallery?: Array<string | GalleryMediaInput>;
   isOpenSource?: boolean;
   sourceUrl?: string;
   content?: string;
@@ -36,7 +46,7 @@ type ProjectRecordResponse = {
   pinned: boolean;
   tags: string[];
   cover?: string;
-  gallery: string[];
+  gallery: GalleryMediaRecord[];
   isOpenSource: boolean;
   sourceUrl?: string;
 };
@@ -67,15 +77,39 @@ function normalizeTags(tags: unknown) {
     .filter(Boolean);
 }
 
-function normalizeGallery(gallery: unknown) {
+function normalizeGallery(gallery: unknown): GalleryMediaRecord[] {
   if (!Array.isArray(gallery)) {
     return [];
   }
 
   return gallery
-    .filter((item): item is string => typeof item === "string")
-    .map((item) => item.trim())
-    .filter(Boolean);
+    .map((item): GalleryMediaRecord | null => {
+      if (typeof item === "string") {
+        const url = item.trim();
+        if (!url) return null;
+
+        return {
+          url,
+          kind: "image",
+        };
+      }
+
+      if (!item || typeof item !== "object") {
+        return null;
+      }
+
+      const url = typeof item.url === "string" ? item.url.trim() : "";
+
+      if (!url) {
+        return null;
+      }
+
+      return {
+        url,
+        kind: item.kind === "video" ? "video" : "image",
+      };
+    })
+    .filter((item): item is GalleryMediaRecord => item !== null);
 }
 
 function isValidTimestamp(value: unknown): value is number {

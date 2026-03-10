@@ -10,10 +10,17 @@ import { PageShell, SiteNav, PostMeta, TagList, Panel, ProjectRow } from "@/comp
 import { AnimatedDiv } from "@/components/animations";
 import TextSelectionShare from "@/components/TextSelectionShare";
 import PostEngagement, { ReactionBar } from "@/components/PostEngagement";
-import Image from "next/image";
+import ProjectGallery from "./ProjectGallery";
 
 type PageProps = {
   params: Promise<{ slug: string }>;
+};
+
+type AssetKind = "image" | "video";
+
+type GalleryMedia = {
+  url: string;
+  kind: AssetKind;
 };
 
 export async function generateStaticParams() {
@@ -61,6 +68,21 @@ export default async function ProjectDetailPage({ params }: PageProps) {
     .slice(0, 3);
 
   const initialStats = getPostStats(project.slug);
+
+  const galleryItems = project.gallery.map((item, idx) => {
+    const media: GalleryMedia =
+      typeof item === "string" ? { url: item, kind: "image" } : { url: item.url, kind: item.kind };
+
+    return {
+      id: `${project.slug}-gallery-${idx}`,
+      url: media.url,
+      kind: media.kind,
+      alt: `${project.title} gallery item ${idx + 1}`,
+    };
+  });
+
+  const imageCount = galleryItems.filter((item) => item.kind === "image").length;
+  const videoCount = galleryItems.filter((item) => item.kind === "video").length;
 
   const header = (
     <div className={`group flex flex-col gap-6 ${t.pad.header}`}>
@@ -160,40 +182,30 @@ export default async function ProjectDetailPage({ params }: PageProps) {
         <article
           className={`relative min-w-0 border-b ${t.color.border} px-6 py-8 pb-20 sm:px-8 sm:py-10 sm:pb-20 lg:border-b-0 lg:border-r overflow-visible`}
         >
-          <div data-share-scope>
-            <AnimatedDiv delay={140} duration={900} distance={20}>
-              <div
-                className="prose-flat max-w-none"
-                dangerouslySetInnerHTML={{ __html: project.html }}
-              />
-            </AnimatedDiv>
-          </div>
-
           {/* ── Gallery ── */}
-          {project.gallery.length > 0 && (
+          {galleryItems.length > 0 && (
             <AnimatedDiv delay={200} duration={800} distance={20}>
-              <div className={`mt-12 border-t ${t.color.border} pt-8`}>
-                <p className={`mb-4 ${t.text.kicker} ${t.color.accent}`}>Gallery</p>
-                <div className="grid gap-3 sm:grid-cols-2">
-                  {project.gallery.map((imageUrl, idx) => (
-                    <div
-                      key={idx}
-                      className={`relative overflow-hidden border ${t.color.border} bg-neutral-900`}
-                    >
-                      <Image
-                        src={imageUrl}
-                        alt={`${project.title} gallery image ${idx + 1}`}
-                        width={800}
-                        height={450}
-                        unoptimized
-                        className="w-full h-auto object-cover"
-                      />
-                    </div>
-                  ))}
-                </div>
+              <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+                <p className={`${t.text.kicker} ${t.color.accent}`}>Gallery</p>
+                <p className={`text-xs ${t.color.muted}`}>
+                  Click any item to open it. Supports images and video.
+                </p>
               </div>
+
+              <ProjectGallery title={project.title} items={galleryItems} />
             </AnimatedDiv>
           )}
+
+          <div className={`mt-12 border-t ${t.color.border} pt-8`}>
+            <div data-share-scope>
+              <AnimatedDiv delay={140} duration={900} distance={20}>
+                <div
+                  className="prose-flat max-w-none"
+                  dangerouslySetInnerHTML={{ __html: project.html }}
+                />
+              </AnimatedDiv>
+            </div>
+          </div>
 
           <ReactionBar slug={project.slug} initialStats={{ ...initialStats, myReactions: [] }} />
         </article>
@@ -251,11 +263,14 @@ export default async function ProjectDetailPage({ params }: PageProps) {
                     </dd>
                   </div>
                 )}
-                {project.gallery.length > 0 && (
+
+                {galleryItems.length > 0 && (
                   <div>
                     <dt className={`${t.text.meta} ${t.color.muted}`}>Gallery</dt>
                     <dd className={`mt-1 ${t.color.bodyStrong}`}>
-                      {project.gallery.length} image{project.gallery.length !== 1 ? "s" : ""}
+                      {galleryItems.length} item{galleryItems.length !== 1 ? "s" : ""}
+                      {imageCount > 0 ? ` · ${imageCount} image${imageCount !== 1 ? "s" : ""}` : ""}
+                      {videoCount > 0 ? ` · ${videoCount} video${videoCount !== 1 ? "s" : ""}` : ""}
                     </dd>
                   </div>
                 )}

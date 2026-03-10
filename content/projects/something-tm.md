@@ -10,8 +10,14 @@ tags:
   - storage
   - cdn
 gallery:
-  - /assets/71fe8f56354ad7cad84f463588de2796.webp
-  - /assets/favicon.ico
+  - url: /assets/favicon.ico
+    kind: image
+  - url: /assets/beastk_pfp.webp
+    kind: image
+  - url: /assets/screenshot-2026-03-09-at-23.04.46.png
+    kind: image
+  - url: /assets/screenrecording.mov
+    kind: video
 isOpenSource: true
 sourceUrl: 'https://github.com/Reboxed'
 ---

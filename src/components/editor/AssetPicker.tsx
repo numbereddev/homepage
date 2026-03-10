@@ -4,10 +4,17 @@ import Image from "next/image";
 import { useState, useCallback, useEffect } from "react";
 import AssetUploadModal, { type AssetData } from "./AssetUploadModal";
 
+declare global {
+  interface Window {
+    __projectEditorSelectedGalleryAsset?: AssetData;
+  }
+}
+
 type AssetPickerProps = {
   isOpen: boolean;
   onCloseAction: () => void;
   onSelectAction: (asset: AssetData, insertType: InsertType) => void;
+  onAddToGalleryAction?: (asset: AssetData) => void;
 };
 
 type InsertType = "markdown" | "html-img" | "html-video" | "html-audio" | "url-only";
@@ -60,7 +67,12 @@ function getInsertOptions(mimeType: string): { value: InsertType; label: string 
   return options;
 }
 
-export default function AssetPicker({ isOpen, onCloseAction, onSelectAction }: AssetPickerProps) {
+export default function AssetPicker({
+  isOpen,
+  onCloseAction,
+  onSelectAction,
+  onAddToGalleryAction,
+}: AssetPickerProps) {
   const [assets, setAssets] = useState<AssetData[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
@@ -100,14 +112,18 @@ export default function AssetPicker({ isOpen, onCloseAction, onSelectAction }: A
     if (isOpen) {
       fetchAssets();
       setSelectedAsset(null);
+      window.__projectEditorSelectedGalleryAsset = undefined;
       setSearchQuery("");
       setFilterType("all");
+    } else {
+      window.__projectEditorSelectedGalleryAsset = undefined;
     }
   }, [isOpen, fetchAssets]);
 
   const handleAssetUploaded = useCallback((asset: AssetData) => {
     setAssets((prev) => [asset, ...prev]);
     setSelectedAsset(asset);
+    window.__projectEditorSelectedGalleryAsset = asset;
     setShowUploadModal(false);
 
     // Set default insert type based on mime type
@@ -130,8 +146,16 @@ export default function AssetPicker({ isOpen, onCloseAction, onSelectAction }: A
     }
   }, [selectedAsset, insertType, onSelectAction, onCloseAction]);
 
+  const handleAddToGallery = useCallback(() => {
+    if (selectedAsset && onAddToGalleryAction) {
+      onAddToGalleryAction(selectedAsset);
+      onCloseAction();
+    }
+  }, [selectedAsset, onAddToGalleryAction, onCloseAction]);
+
   const handleAssetClick = useCallback((asset: AssetData) => {
     setSelectedAsset(asset);
+    window.__projectEditorSelectedGalleryAsset = asset;
 
     // Set default insert type based on mime type
     const category = getMimeCategory(asset.mimeType);
@@ -457,6 +481,16 @@ export default function AssetPicker({ isOpen, onCloseAction, onSelectAction }: A
           >
             Cancel
           </button>
+          {onAddToGalleryAction && (
+            <button
+              type="button"
+              onClick={handleAddToGallery}
+              disabled={!selectedAsset}
+              className="border border-[#3a4758] px-5 py-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-[#f5f7fa] transition hover:bg-[#151c25] disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Add to Gallery
+            </button>
+          )}
           <button
             type="button"
             onClick={handleSelect}

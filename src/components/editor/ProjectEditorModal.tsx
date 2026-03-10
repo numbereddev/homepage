@@ -6,6 +6,11 @@ import ComponentDrawer from "./ComponentDrawer";
 import AssetPicker, { type AssetData, type InsertType } from "./AssetPicker";
 import PostPreview from "@/components/PostPreview";
 
+type GalleryMedia = {
+  url: string;
+  kind: "image" | "video";
+};
+
 export type ProjectData = {
   originalSlug: string;
   slug: string;
@@ -16,7 +21,7 @@ export type ProjectData = {
   pinned: boolean;
   tags: string;
   cover: string;
-  gallery: string[];
+  gallery: GalleryMedia[];
   isOpenSource: boolean;
   sourceUrl: string;
   content: string;
@@ -31,6 +36,8 @@ type ProjectEditorModalProps = {
   isSaving: boolean;
   isDeleting: boolean;
 };
+
+type AssetPickerMode = "content" | "gallery";
 
 function normalizeSlug(value: string, options?: { preserveEdgeDashes?: boolean }) {
   const normalized = value
@@ -77,6 +84,10 @@ function parseInputToTimestamp(value: string) {
   return Number.isNaN(parsed) ? Date.now() : parsed;
 }
 
+function getGalleryMediaKindFromAsset(asset: AssetData): GalleryMedia["kind"] {
+  return asset.mimeType.startsWith("video/") ? "video" : "image";
+}
+
 export default function ProjectEditorModal({
   isOpen,
   project,
@@ -117,6 +128,7 @@ export default function ProjectEditorModal({
   const [activeTab, setActiveTab] = useState<"editor" | "preview">("editor");
   const [showComponentDrawer, setShowComponentDrawer] = useState(false);
   const [showAssetPicker, setShowAssetPicker] = useState(false);
+  const [assetPickerMode, setAssetPickerMode] = useState<AssetPickerMode>("content");
   const [error, setError] = useState("");
   const [showConfirmClose, setShowConfirmClose] = useState(false);
   const [historyPast, setHistoryPast] = useState<EditorHistoryState[]>([]);
@@ -273,10 +285,67 @@ export default function ProjectEditorModal({
     if (!url) return;
     commitEditorState((state) => ({
       ...state,
-      project: { ...state.project, gallery: [...state.project.gallery, url] },
+      project: {
+        ...state.project,
+        gallery: [...state.project.gallery, { url, kind: "image" }],
+      },
     }));
     setGalleryInput("");
   }, [galleryInput, commitEditorState]);
+
+  const addGalleryAsset = useCallback(
+    (asset: AssetData) => {
+      commitEditorState((state) => ({
+        ...state,
+        project: {
+          ...state.project,
+          gallery: [
+            ...state.project.gallery,
+            { url: asset.url, kind: getGalleryMediaKindFromAsset(asset) },
+          ],
+        },
+      }));
+      setShowAssetPicker(false);
+    },
+    [commitEditorState],
+  );
+
+  const updateGalleryMediaKind = useCallback(
+    (index: number, kind: GalleryMedia["kind"]) => {
+      commitEditorState((state) => ({
+        ...state,
+        project: {
+          ...state.project,
+          gallery: state.project.gallery.map((item, i) => (i === index ? { ...item, kind } : item)),
+        },
+      }));
+    },
+    [commitEditorState],
+  );
+
+  const moveGalleryMedia = useCallback(
+    (index: number, direction: "left" | "right") => {
+      commitEditorState((state) => {
+        const targetIndex = direction === "left" ? index - 1 : index + 1;
+
+        if (targetIndex < 0 || targetIndex >= state.project.gallery.length) {
+          return state;
+        }
+
+        const gallery = [...state.project.gallery];
+        [gallery[index], gallery[targetIndex]] = [gallery[targetIndex], gallery[index]];
+
+        return {
+          ...state,
+          project: {
+            ...state.project,
+            gallery,
+          },
+        };
+      });
+    },
+    [commitEditorState],
+  );
 
   const removeGalleryImage = useCallback(
     (index: number) => {
@@ -399,6 +468,7 @@ export default function ProjectEditorModal({
         };
       });
       setShowAssetPicker(false);
+      setAssetPickerMode("content");
     },
     [commitEditorState],
   );
@@ -574,7 +644,10 @@ export default function ProjectEditorModal({
 
             <button
               type="button"
-              onClick={() => setShowAssetPicker(true)}
+              onClick={() => {
+                setAssetPickerMode("content");
+                setShowAssetPicker(true);
+              }}
               className="border border-[#3a4758] px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-[#92d0a6] transition hover:bg-[#151c25]"
             >
               Assets
@@ -740,19 +813,67 @@ export default function ProjectEditorModal({
 
                   {/* Gallery manager */}
                   <div className="mb-6 border border-[#202632] bg-[#0b0f14] p-4">
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#7d8a99] mb-3">
-                      Gallery Images
-                    </p>
+                    <div className="mb-3 flex items-center justify-between gap-3">
+                      <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#7d8a99]">
+                        Gallery Media
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setAssetPickerMode("gallery");
+                          setShowAssetPicker(true);
+                        }}
+                        className="shrink-0 border border-[#3a4758] px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-[#f5f7fa] transition hover:bg-[#151c25]"
+                      >
+                        + Add from Assets
+                      </button>
+                    </div>
                     {localProject.gallery.length > 0 && (
                       <div className="space-y-2 mb-3">
-                        {localProject.gallery.map((url, idx) => (
+                        {localProject.gallery.map((item, idx) => (
                           <div
                             key={idx}
-                            className="flex items-center gap-2 border border-[#202632] bg-[#0a0d12] px-3 py-2"
+                            className="flex items-center gap-3 border border-[#202632] bg-[#0a0d12] px-3 py-2"
                           >
                             <span className="flex-1 min-w-0 text-sm text-[#8fa1b3] truncate">
-                              {url}
+                              {item.url}
                             </span>
+
+                            <div className="flex items-center gap-1">
+                              <button
+                                type="button"
+                                onClick={() => moveGalleryMedia(idx, "left")}
+                                disabled={idx === 0}
+                                className="shrink-0 border border-[#202632] px-2 py-1 text-[10px] text-[#8fa1b3] transition hover:bg-[#151c25] hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
+                                aria-label="Move gallery media left"
+                                title="Move left"
+                              >
+                                ←
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => moveGalleryMedia(idx, "right")}
+                                disabled={idx === localProject.gallery.length - 1}
+                                className="shrink-0 border border-[#202632] px-2 py-1 text-[10px] text-[#8fa1b3] transition hover:bg-[#151c25] hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
+                                aria-label="Move gallery media right"
+                                title="Move right"
+                              >
+                                →
+                              </button>
+                            </div>
+
+                            <label className="flex items-center gap-2 text-[10px] uppercase tracking-[0.14em] text-[#8fa1b3]">
+                              <input
+                                type="checkbox"
+                                checked={item.kind === "video"}
+                                onChange={(e) =>
+                                  updateGalleryMediaKind(idx, e.target.checked ? "video" : "image")
+                                }
+                                className="h-4 w-4 border border-[#3a4758] bg-transparent accent-[#7dd3fc]"
+                              />
+                              Video
+                            </label>
+
                             <button
                               type="button"
                               onClick={() => removeGalleryImage(idx)}
@@ -774,7 +895,7 @@ export default function ProjectEditorModal({
                             addGalleryImage();
                           }
                         }}
-                        placeholder="Image URL (e.g. /assets/screenshot.png)"
+                        placeholder="Media URL (e.g. /assets/screenshot.png or /assets/demo.mp4)"
                         className="flex-1 border border-[#202632] bg-[#0f141b] px-3 py-2 text-sm text-white outline-none placeholder:text-[#506172] focus:border-[#5b9fd6]"
                       />
                       <button
@@ -782,9 +903,14 @@ export default function ProjectEditorModal({
                         onClick={addGalleryImage}
                         className="shrink-0 border border-[#3a4758] px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-[#f5f7fa] transition hover:bg-[#151c25]"
                       >
-                        + Add
+                        + Add URL
                       </button>
                     </div>
+                    <p className="mt-3 text-[10px] text-[#607080]">
+                      “Add from Assets” now adds directly to the gallery and uses the asset MIME
+                      type to detect videos automatically. You can still override it with the
+                      checkbox.
+                    </p>
                   </div>
 
                   {/* Content blocks */}
@@ -990,8 +1116,18 @@ export default function ProjectEditorModal({
       />
       <AssetPicker
         isOpen={showAssetPicker}
-        onCloseAction={() => setShowAssetPicker(false)}
-        onSelectAction={handleAssetSelect}
+        onCloseAction={() => {
+          setShowAssetPicker(false);
+          setAssetPickerMode("content");
+        }}
+        onSelectAction={(asset, insertType) => {
+          if (assetPickerMode === "gallery") {
+            addGalleryAsset(asset);
+            return;
+          }
+
+          handleAssetSelect(asset, insertType);
+        }}
       />
     </>
   );
@@ -1024,7 +1160,7 @@ export function projectToEditorData(raw: {
   pinned: boolean;
   tags: string[];
   cover: string;
-  gallery: string[];
+  gallery: GalleryMedia[];
   isOpenSource: boolean;
   sourceUrl: string;
   content: string;

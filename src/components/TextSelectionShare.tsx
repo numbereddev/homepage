@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { useEffect, useRef, useState, useCallback } from "react";
+import { createPortal } from "react-dom";
 
 type Props = {
   postTitle: string;
@@ -47,6 +48,7 @@ async function copyText(s: string) {
 export default function TextSelectionShare({ postTitle, postUrl }: Props) {
   const [pop, setPop] = useState<PopoverState>({ visible: false });
   const [copied, setCopied] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const popoverRef = useRef<HTMLDivElement>(null);
   const copyTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -165,7 +167,7 @@ export default function TextSelectionShare({ postTitle, postUrl }: Props) {
       setTimeout(() => {
         const sel = window.getSelection();
         if (!sel || sel.isCollapsed) hide();
-      }, 120);
+      }, 0);
     };
 
     document.addEventListener("mousedown", onMouseDown);
@@ -186,7 +188,9 @@ export default function TextSelectionShare({ postTitle, postUrl }: Props) {
   }, [pop.visible, hide]);
 
   useEffect(() => {
+    setMounted(true);
     return () => {
+      setMounted(false);
       if (copyTimer.current) clearTimeout(copyTimer.current);
     };
   }, []);
@@ -227,7 +231,7 @@ export default function TextSelectionShare({ postTitle, postUrl }: Props) {
   const x = pop.visible ? pop.x : 0;
   const y = pop.visible ? pop.y : 0;
 
-  return (
+  const popover = (
     <div
       ref={popoverRef}
       role="dialog"
@@ -337,6 +341,10 @@ export default function TextSelectionShare({ postTitle, postUrl }: Props) {
       `}</style>
     </div>
   );
+
+  if (!mounted) return null;
+
+  return createPortal(popover, document.body);
 }
 
 // ---------------------------------------------------------------------------
