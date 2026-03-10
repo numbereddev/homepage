@@ -6,6 +6,7 @@ import {
   createAdminSession,
   deleteAdminSession,
   getAdminByUsername,
+  isSetupComplete,
   verifyPassword,
 } from "@/lib/db";
 
@@ -33,6 +34,19 @@ export async function POST(request: Request) {
 
     const contentType = request.headers.get("content-type");
     const expectsHtml = isFormRequest(contentType);
+
+    if (!(await isSetupComplete())) {
+      if (expectsHtml) {
+        return NextResponse.redirect(new URL("/admin?setup=required", request.url), {
+          status: 303,
+        });
+      }
+
+      return NextResponse.json(
+        { error: "Initial setup is required before signing in.", setupRequired: true },
+        { status: 403 },
+      );
+    }
 
     let username = "";
     let password = "";
@@ -64,7 +78,7 @@ export async function POST(request: Request) {
       return badRequest("Username and password are required.");
     }
 
-    const admin = getAdminByUsername(username);
+    const admin = await getAdminByUsername(username);
 
     if (!admin) {
       if (expectsHtml) {
@@ -88,7 +102,7 @@ export async function POST(request: Request) {
       return unauthorized();
     }
 
-    const session = createAdminSession(admin.id, SESSION_DURATION_DAYS);
+    const session = await createAdminSession(admin.id, SESSION_DURATION_DAYS);
     const cookieStore = await cookies();
 
     cookieStore.set(SESSION_COOKIE_NAME, session.token, {
@@ -123,7 +137,7 @@ export async function DELETE() {
     const sessionToken = cookieStore.get(SESSION_COOKIE_NAME)?.value;
 
     if (sessionToken) {
-      deleteAdminSession(sessionToken);
+      await deleteAdminSession(sessionToken);
     }
 
     cookieStore.set(SESSION_COOKIE_NAME, "", {

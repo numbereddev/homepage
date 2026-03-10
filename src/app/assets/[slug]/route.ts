@@ -39,7 +39,7 @@ export async function GET(_request: Request, context: RouteContext) {
     return NextResponse.json({ error: "Invalid asset slug." }, { status: 400 });
   }
 
-  const asset = getAssetBySlug(normalizedSlug);
+  const asset = await getAssetBySlug(normalizedSlug);
 
   if (!asset) {
     return NextResponse.json({ error: "Asset not found." }, { status: 404 });

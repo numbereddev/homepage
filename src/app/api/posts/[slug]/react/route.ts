@@ -31,8 +31,8 @@ export async function POST(req: NextRequest, { params }: Params) {
   const ua = req.headers.get("user-agent") ?? "";
   const fingerprint = makeFingerprint(ip, ua);
 
-  const { added } = toggleReaction(slug, emoji, fingerprint);
-  const stats = getPostStats(slug, fingerprint);
+  const { added } = await toggleReaction(slug, emoji, fingerprint);
+  const stats = await getPostStats(slug, fingerprint);
 
   broadcast(slug, stats);
 

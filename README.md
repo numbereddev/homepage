@@ -1,6 +1,6 @@
 # Numbered Dev
 
-A sleek developer portfolio and blog built with React, Next.js, Markdown content, and SQLite-backed admin auth.
+A sleek developer portfolio and blog built with React, Next.js, Markdown content, and a MySQL-backed admin/auth system that works well on Node.js hosting such as Plesk.
 
 ## Stack
 
@@ -9,7 +9,7 @@ A sleek developer portfolio and blog built with React, Next.js, Markdown content
 - TypeScript
 - Tailwind CSS
 - Markdown articles with frontmatter
-- SQLite via `better-sqlite3`
+- MySQL
 - Hashed passwords with `bcryptjs`
 
 ## Design Goals
@@ -38,10 +38,11 @@ That means:
 - Blog powered by Markdown files in `content/posts`
 - Individual article pages
 - Lightweight admin panel
-- SQLite-backed admin sessions
+- MySQL-backed admin accounts, sessions, links, assets, post views, and reactions
 - Hashed admin password storage
 - Draft and published post support
 - Flat, modern developer-focused UI
+- First-run setup flow for creating the initial admin account
 
 ## Project Structure
 
@@ -49,8 +50,6 @@ That means:
 blog/
 ├── content/
 │   └── posts/              # Markdown blog posts
-├── data/
-│   └── site.db             # SQLite database created at runtime
 ├── public/                 # Static assets
 └── src/
     ├── app/                # Next.js routes and API handlers
@@ -85,17 +84,39 @@ Create a `.env.local` file in the project root.
 Example:
 
 ```bash
-ADMIN_USERNAME=admin
-ADMIN_PASSWORD=change-this-immediately
+MYSQL_HOST=127.0.0.1
+MYSQL_PORT=3306
+MYSQL_DATABASE=numbered_dev
+MYSQL_USER=numbered_dev_user
+MYSQL_PASSWORD=change-this
+MYSQL_SSL=false
+SESSION_COOKIE_NAME=numbered-dev-admin-session
+```
+
+### Optional app URL settings
+
+```bash
+NEXT_PUBLIC_SITE_URL=http://localhost:3000
 ```
 
 ### Notes
 
-- If these values are not provided, the app falls back to:
-  - username: `admin`
-  - password: `changeme-now`
-- You should override those defaults before using the site seriously.
-- On first run, the admin user is seeded into SQLite automatically.
+- The app uses MySQL for runtime persistence.
+- On first run, if no admin account exists yet, `/admin` shows an initial setup screen instead of the login form.
+- The first setup creates the initial admin user in the database.
+- After setup is complete, the normal admin login flow is used.
+- You should use a strong MySQL password and a strong admin password in production.
+
+## Initial Setup Flow
+
+When the site is connected to MySQL but has not been configured yet:
+
+1. Open `/admin`
+2. You will see the first-run setup screen
+3. Create the initial admin username and password
+4. Sign in and use the dashboard normally
+
+This is useful for deployments on hosting panels like Plesk where you provision the MySQL database first and complete app setup in the browser.
 
 ## Admin Access
 
@@ -105,15 +126,11 @@ Open:
 http://localhost:3000/admin
 ```
 
-Sign in with the credentials from `.env.local`.
+Behavior:
 
-The admin area is intentionally simple and lets you:
-
-- create posts
-- edit posts
-- delete posts
-- mark articles as published or draft
-- manage Markdown content in a built-in editor
+- If the app is not set up yet, you will see the setup screen
+- If setup is complete, you will see the admin login screen
+- After login, you can manage posts, projects, links, and assets
 
 ## How Posts Work
 
@@ -156,18 +173,18 @@ Edit files in `content/posts` if you prefer a file-based workflow.
 
 ## Database
 
-SQLite is used for lightweight local persistence.
+MySQL is used for application persistence.
 
 Current usage includes:
 
 - admin accounts
 - admin sessions
+- social/profile links
+- uploaded asset metadata
+- post views
+- post reactions
 
-The database file is created automatically at runtime:
-
-```text
-data/site.db
-```
+The schema is created automatically by the application at runtime when the database connection is available.
 
 ## Authentication
 
@@ -188,23 +205,42 @@ npm run start
 npm run lint
 ```
 
-## Production Notes
+## Deploying on Plesk Node.js Hosting
 
-Before deploying:
+A typical Plesk deployment looks like this:
 
-1. Set `ADMIN_USERNAME`
-2. Set a strong `ADMIN_PASSWORD`
-3. Protect access to the deployed admin route
-4. Make sure the runtime can write to:
-   - `data/`
-   - `content/posts/`
+1. Create a Node.js app in Plesk
+2. Create a MySQL database in Plesk
+3. Add the required environment variables in Plesk
+4. Install dependencies
+5. Build the app
+6. Start/restart the app
+7. Open `/admin` and complete the initial setup if no admin exists yet
+
+### Important deployment notes
+
+Make sure the runtime can write to:
+
+- `content/posts/`
+- `public/assets/`
+
+If your hosting setup restricts filesystem writes, admin content creation and uploads will not work until those directories are writable.
+
+### Recommended production configuration
+
+- Set `NODE_ENV=production`
+- Use HTTPS
+- Use a strong MySQL password
+- Use a strong admin password
+- Restrict access to the admin area where possible
+- Back up both the MySQL database and your Markdown/content files
 
 ## Why This Setup
 
 This project is optimized for a solo developer workflow:
 
 - Markdown keeps writing portable and versionable
-- SQLite keeps admin storage simple
+- MySQL fits shared hosting and Plesk environments better than SQLite
 - Next.js keeps the public site and admin in one codebase
 - The UI stays focused on clean presentation instead of decorative effects
 

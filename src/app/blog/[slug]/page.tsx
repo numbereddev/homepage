@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 
 import { notFound } from "next/navigation";
 
-import { getAllPosts, getPostBySlug, getPostSlugs, getPinnedProjects } from "@/lib/content";
+import { getPostBySlug, getPostSlugs, getPinnedProjects } from "@/lib/content";
 import { getPostStats } from "@/lib/db";
 import { formatTimestamp } from "@/lib/utils";
 import { t } from "@/lib/tokens";
@@ -58,7 +58,7 @@ export default async function BlogPostPage({ params }: PageProps) {
   const pinnedProjects = getPinnedProjects().slice(0, 3);
 
   // Fetch initial stats server-side so there's no loading flash
-  const initialStats = getPostStats(post.slug);
+  const initialStats = await getPostStats(post.slug);
 
   const header = (
     <div className={`group flex flex-col gap-6 ${t.pad.header}`}>

@@ -38,10 +38,10 @@ const WORK_ITEMS = [
   },
 ];
 
-export default function HomePage() {
+export default async function HomePage() {
   const latestPosts = getAllPosts(false).slice(0, 4);
   const pinnedProjects = getPinnedProjects().slice(0, 3);
-  const links = getAllLinks();
+  const links = await getAllLinks();
 
   const header = (
     <PageTransition>
@@ -165,11 +165,7 @@ export default function HomePage() {
   return (
     <PageShell header={header} footerRight="Software Engineer · UI Designer · Entrepeneur">
       {/* ── Latest posts grid ── */}
-      <AnimatedSection
-        id="work"
-        className={`border-b ${t.color.border} ${t.pad.section}`}
-        delay={120}
-      >
+      <AnimatedSection className={`border-b ${t.color.border} ${t.pad.section}`} delay={120}>
         <SectionHeading
           eyebrow="Posts"
           title="Latest posts"

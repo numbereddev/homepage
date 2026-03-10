@@ -22,7 +22,7 @@ export async function GET(req: NextRequest, { params }: Params) {
 
   // Immediately push current stats so the client doesn't wait for the first
   // broadcast event to get an initial reading.
-  const initial = getPostStats(slug, fingerprint);
+  const initial = await getPostStats(slug, fingerprint);
   const encoder = new TextEncoder();
   const initChunk = encoder.encode(`data: ${JSON.stringify(initial)}\n\n`);
   let reader: ReadableStreamDefaultReader<Uint8Array> | null = null;
