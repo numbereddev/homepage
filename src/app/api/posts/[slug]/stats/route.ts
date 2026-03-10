@@ -17,6 +17,6 @@ export async function GET(req: NextRequest, { params }: Params) {
   const ua = req.headers.get("user-agent") ?? "";
   const fingerprint = makeFingerprint(ip, ua);
 
-  const stats = getPostStats(slug, fingerprint);
+  const stats = await getPostStats(slug, fingerprint);
   return NextResponse.json(stats);
 }

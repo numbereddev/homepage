@@ -16,7 +16,7 @@ const SESSION_COOKIE_NAME = "numbered-dev-admin-session";
 const ASSETS_DIR = path.join(process.cwd(), "public", "assets");
 
 async function requireAdmin() {
-  clearExpiredAdminSessions();
+  await clearExpiredAdminSessions();
 
   const cookieStore = await cookies();
   const token = cookieStore.get(SESSION_COOKIE_NAME)?.value;
@@ -25,7 +25,7 @@ async function requireAdmin() {
     return null;
   }
 
-  return getAdminSession(token);
+  return await getAdminSession(token);
 }
 
 function ensureAssetsDirectory() {
@@ -69,7 +69,7 @@ export async function GET() {
     return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
   }
 
-  const assets = getAllAssets();
+  const assets = await getAllAssets();
 
   return NextResponse.json({
     assets: assets.map(toAssetResponse),
@@ -88,20 +88,14 @@ export async function POST(request: Request) {
   const contentType = request.headers.get("content-type") || "";
 
   if (!contentType.includes("multipart/form-data")) {
-    return NextResponse.json(
-      { error: "Expected multipart/form-data request." },
-      { status: 400 }
-    );
+    return NextResponse.json({ error: "Expected multipart/form-data request." }, { status: 400 });
   }
 
   let formData: FormData;
   try {
     formData = await request.formData();
   } catch {
-    return NextResponse.json(
-      { error: "Failed to parse form data." },
-      { status: 400 }
-    );
+    return NextResponse.json({ error: "Failed to parse form data." }, { status: 400 });
   }
 
   const file = formData.get("file");
@@ -115,12 +109,10 @@ export async function POST(request: Request) {
   const mimeType = file.type || "application/octet-stream";
   const size = file.size;
 
-  // Generate or normalize slug
   let slug: string;
   if (typeof slugInput === "string" && slugInput.trim()) {
     slug = normalizeSlug(slugInput);
   } else {
-    // Use filename without extension as slug
     const baseName = originalFilename.replace(/\.[^.]+$/, "");
     slug = normalizeSlug(baseName);
   }
@@ -129,15 +121,13 @@ export async function POST(request: Request) {
     slug = `asset-${Date.now()}`;
   }
 
-  // Ensure slug is unique
   let finalSlug = slug;
   let counter = 1;
-  while (assetSlugExists(finalSlug)) {
+  while (await assetSlugExists(finalSlug)) {
     finalSlug = `${slug}-${counter}`;
     counter++;
   }
 
-  // Save file to disk with slug + original extension
   const ext = getFileExtension(originalFilename);
   const savedFilename = `${finalSlug}${ext}`;
   const filePath = path.join(ASSETS_DIR, savedFilename);
@@ -147,17 +137,27 @@ export async function POST(request: Request) {
     fs.writeFileSync(filePath, buffer);
   } catch (err) {
     console.error("Failed to save asset file:", err);
-    return NextResponse.json(
-      { error: "Failed to save file to disk." },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Failed to save file to disk." }, { status: 500 });
   }
 
-  // Save to database
-  const asset = createAsset(finalSlug, originalFilename, mimeType, size);
+  try {
+    const asset = await createAsset(finalSlug, originalFilename, mimeType, size);
 
-  return NextResponse.json({
-    message: "Asset uploaded successfully.",
-    asset: toAssetResponse(asset),
-  });
+    return NextResponse.json({
+      message: "Asset uploaded successfully.",
+      asset: toAssetResponse(asset),
+    });
+  } catch (err) {
+    console.error("Failed to save asset metadata:", err);
+
+    try {
+      if (fs.existsSync(filePath)) {
+        fs.unlinkSync(filePath);
+      }
+    } catch (cleanupErr) {
+      console.error("Failed to clean up uploaded asset file:", cleanupErr);
+    }
+
+    return NextResponse.json({ error: "Failed to save asset metadata." }, { status: 500 });
+  }
 }

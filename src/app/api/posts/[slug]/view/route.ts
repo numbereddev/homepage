@@ -18,10 +18,10 @@ export async function POST(req: NextRequest, { params }: Params) {
   const ua = req.headers.get("user-agent") ?? "";
   const fingerprint = makeFingerprint(ip, ua);
 
-  const isNew = recordView(slug, fingerprint);
+  const isNew = await recordView(slug, fingerprint);
 
   if (isNew) {
-    const stats = getPostStats(slug);
+    const stats = await getPostStats(slug);
     broadcast(slug, stats);
   }
 

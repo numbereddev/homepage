@@ -4,7 +4,7 @@ import { getAllPosts, getAllProjects } from "@/lib/content";
 import { clearExpiredAdminSessions, getAdminSession, getAllLinks, getAllAssets } from "@/lib/db";
 
 async function getAdminData() {
-  clearExpiredAdminSessions();
+  await clearExpiredAdminSessions();
 
   const cookieStore = await cookies();
   const token = cookieStore.get("numbered-dev-admin-session")?.value;
@@ -13,7 +13,7 @@ async function getAdminData() {
     return { session: null };
   }
 
-  const session = getAdminSession(token);
+  const session = await getAdminSession(token);
 
   if (!session) {
     return { session: null };
@@ -47,7 +47,7 @@ function AdminLogin() {
               <div className="mt-10 grid gap-px border border-[#202632] bg-[#202632] sm:grid-cols-3">
                 {[
                   ["Markdown", "Write articles as files with clean frontmatter."],
-                  ["SQLite", "Local auth and session storage with minimal overhead."],
+                  ["MySQL", "Persistent auth and session storage for hosted deployments."],
                   ["Flat UI", "Sharp corners, hard borders, and zero visual noise."],
                 ].map(([title, detail]) => (
                   <div key={title} className="bg-[#0b0f14] p-4">
@@ -130,10 +130,9 @@ export default async function AdminPage() {
 
   const posts = getAllPosts(true);
   const projects = getAllProjects(true);
-  const links = getAllLinks();
-  const assets = getAllAssets();
+  const links = await getAllLinks();
+  const assets = await getAllAssets();
 
-  // Helper to get file extension
   function getFileExtension(filename: string): string {
     const lastDot = filename.lastIndexOf(".");
     if (lastDot === -1) return "";

@@ -9,7 +9,7 @@ import {
   verifyPassword,
 } from "@/lib/db";
 
-const SESSION_COOKIE_NAME = "numbered-dev-admin-session";
+const SESSION_COOKIE_NAME = process.env.SESSION_COOKIE_NAME?.trim() || "numbered-dev-admin-session";
 const SESSION_DURATION_DAYS = 7;
 
 function unauthorized(message = "Invalid username or password.") {
@@ -27,9 +27,25 @@ function isFormRequest(contentType: string | null) {
   );
 }
 
+function getOrigin(request: Request) {
+  const forwardedProto = request.headers.get("x-forwarded-proto");
+  const forwardedHost = request.headers.get("x-forwarded-host");
+  const host = forwardedHost || request.headers.get("host");
+
+  if (forwardedProto && host) {
+    return `${forwardedProto}://${host}`;
+  }
+
+  return new URL(request.url).origin;
+}
+
+function getAdminRedirectUrl(request: Request) {
+  return new URL("/admin", getOrigin(request));
+}
+
 export async function POST(request: Request) {
   try {
-    clearExpiredAdminSessions();
+    await clearExpiredAdminSessions();
 
     const contentType = request.headers.get("content-type");
     const expectsHtml = isFormRequest(contentType);
@@ -56,7 +72,7 @@ export async function POST(request: Request) {
 
     if (!username || !password) {
       if (expectsHtml) {
-        return NextResponse.redirect(new URL("/admin", request.url), {
+        return NextResponse.redirect(getAdminRedirectUrl(request), {
           status: 303,
         });
       }
@@ -64,11 +80,11 @@ export async function POST(request: Request) {
       return badRequest("Username and password are required.");
     }
 
-    const admin = getAdminByUsername(username);
+    const admin = await getAdminByUsername(username);
 
     if (!admin) {
       if (expectsHtml) {
-        return NextResponse.redirect(new URL("/admin", request.url), {
+        return NextResponse.redirect(getAdminRedirectUrl(request), {
           status: 303,
         });
       }
@@ -80,7 +96,7 @@ export async function POST(request: Request) {
 
     if (!passwordMatches) {
       if (expectsHtml) {
-        return NextResponse.redirect(new URL("/admin", request.url), {
+        return NextResponse.redirect(getAdminRedirectUrl(request), {
           status: 303,
         });
       }
@@ -88,7 +104,7 @@ export async function POST(request: Request) {
       return unauthorized();
     }
 
-    const session = createAdminSession(admin.id, SESSION_DURATION_DAYS);
+    const session = await createAdminSession(admin.id, SESSION_DURATION_DAYS);
     const cookieStore = await cookies();
 
     cookieStore.set(SESSION_COOKIE_NAME, session.token, {
@@ -100,7 +116,7 @@ export async function POST(request: Request) {
     });
 
     if (expectsHtml) {
-      return NextResponse.redirect(new URL("/admin", request.url), {
+      return NextResponse.redirect(getAdminRedirectUrl(request), {
         status: 303,
       });
     }
@@ -123,7 +139,7 @@ export async function DELETE() {
     const sessionToken = cookieStore.get(SESSION_COOKIE_NAME)?.value;
 
     if (sessionToken) {
-      deleteAdminSession(sessionToken);
+      await deleteAdminSession(sessionToken);
     }
 
     cookieStore.set(SESSION_COOKIE_NAME, "", {

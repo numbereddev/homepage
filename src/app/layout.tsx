@@ -20,15 +20,13 @@ export const metadata: Metadata = {
     template: "%s · Numbered Dev",
   },
   description:
-    "Numbered Dev is a sharp, modern developer blog and portfolio focused on software engineering, product thinking, and technical writing.",
+    "Hey, there! I am Numbered Dev, a software engineer, designer and app experience developer.",
   applicationName: "Numbered Dev",
   keywords: [
-    "Numbered Dev",
     "software engineer",
     "developer portfolio",
     "engineering blog",
-    "React",
-    "Next.js",
+    "ai",
     "technical writing",
     "web development",
   ],
@@ -42,12 +40,12 @@ export const metadata: Metadata = {
     url: "https://numbered.dev",
     siteName: "Numbered Dev",
     title: "Numbered Dev",
-    description: "A dark, flat, technical portfolio and blog for modern software engineering.",
+    description: "Hey, there! I am Numbered Dev, a software engineer, designer and app experience developer.",
   },
   twitter: {
     card: "summary_large_image",
     title: "Numbered Dev",
-    description: "A sharp developer portfolio and engineering blog built for modern software work.",
+    description: "Hey, there! I am Numbered Dev, a software engineer, designer and app experience developer.",
   },
   robots: {
     index: true,

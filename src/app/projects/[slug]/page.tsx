@@ -67,7 +67,7 @@ export default async function ProjectDetailPage({ params }: PageProps) {
     .filter((p) => p.slug !== slug)
     .slice(0, 3);
 
-  const initialStats = getPostStats(project.slug);
+  const initialStats = await getPostStats(project.slug);
 
   const galleryItems = project.gallery.map((item, idx) => {
     const media: GalleryMedia =

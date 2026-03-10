@@ -1,4 +1,5 @@
 import { cookies } from "next/headers";
+import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 
 import {
@@ -10,7 +11,7 @@ import {
   updateAdminPassword,
 } from "@/lib/db";
 
-const SESSION_COOKIE_NAME = "numbered-dev-admin-session";
+const SESSION_COOKIE_NAME = process.env.SESSION_COOKIE_NAME?.trim() || "numbered-dev-admin-session";
 
 type UpdatePasswordBody = {
   currentPassword?: unknown;
@@ -19,7 +20,7 @@ type UpdatePasswordBody = {
 };
 
 async function requireAdmin() {
-  clearExpiredAdminSessions();
+  await clearExpiredAdminSessions();
 
   const cookieStore = await cookies();
   const token = cookieStore.get(SESSION_COOKIE_NAME)?.value;
@@ -28,7 +29,7 @@ async function requireAdmin() {
     return null;
   }
 
-  return getAdminSession(token);
+  return await getAdminSession(token);
 }
 
 function badRequest(message: string) {
@@ -51,12 +52,9 @@ export async function POST(request: Request) {
       return badRequest("Invalid JSON request body.");
     }
 
-    const currentPassword =
-      typeof body.currentPassword === "string" ? body.currentPassword : "";
-    const newPassword =
-      typeof body.newPassword === "string" ? body.newPassword : "";
-    const confirmPassword =
-      typeof body.confirmPassword === "string" ? body.confirmPassword : "";
+    const currentPassword = typeof body.currentPassword === "string" ? body.currentPassword : "";
+    const newPassword = typeof body.newPassword === "string" ? body.newPassword : "";
+    const confirmPassword = typeof body.confirmPassword === "string" ? body.confirmPassword : "";
 
     if (!currentPassword || !newPassword || !confirmPassword) {
       return badRequest("Current password, new password, and confirmation are required.");
@@ -74,26 +72,21 @@ export async function POST(request: Request) {
       return badRequest("New password must be different from the current password.");
     }
 
-    const admin = getAdminByUsername(session.username);
+    const admin = await getAdminByUsername(session.username);
 
     if (!admin) {
       return NextResponse.json({ error: "Admin account not found." }, { status: 404 });
     }
 
-    const currentPasswordMatches = await verifyPassword(
-      currentPassword,
-      admin.password_hash,
-    );
+    const currentPasswordMatches = await verifyPassword(currentPassword, admin.password_hash);
 
     if (!currentPasswordMatches) {
-      return NextResponse.json(
-        { error: "Current password is incorrect." },
-        { status: 401 },
-      );
+      return NextResponse.json({ error: "Current password is incorrect." }, { status: 401 });
     }
 
     const newPasswordHash = await hashPassword(newPassword);
-    updateAdminPassword(admin.id, newPasswordHash);
+    await updateAdminPassword(admin.id, newPasswordHash);
+	revalidatePath("/admin");
 
     return NextResponse.json({
       success: true,
@@ -102,9 +95,6 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error("[admin-password] Failed to update password.", error);
 
-    return NextResponse.json(
-      { error: "Unable to update password right now." },
-      { status: 500 },
-    );
+    return NextResponse.json({ error: "Unable to update password right now." }, { status: 500 });
   }
 }
