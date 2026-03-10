@@ -4,6 +4,11 @@ import { getAllPosts, getAllProjects } from "@/lib/content";
 import { clearExpiredAdminSessions, getAdminSession, getAllLinks, getAllAssets } from "@/lib/db";
 import { ADMIN_SESSION_COOKIE_NAME } from "@/lib/auth";
 
+type AdminLoginProps = {
+  errorMessage?: string;
+  debugMessage?: string;
+};
+
 async function getAdminData() {
   await clearExpiredAdminSessions();
 
@@ -27,7 +32,19 @@ async function getAdminData() {
   };
 }
 
-function AdminLogin() {
+function readSearchParam(value: string | string[] | undefined) {
+  if (typeof value === "string") {
+    return value.trim();
+  }
+
+  if (Array.isArray(value)) {
+    return typeof value[0] === "string" ? value[0].trim() : "";
+  }
+
+  return "";
+}
+
+function AdminLogin({ errorMessage, debugMessage }: AdminLoginProps) {
   return (
     <div className="min-h-screen bg-[#0a0d12] text-[#f5f7fa]">
       <div className="mx-auto flex min-h-screen max-w-7xl items-center justify-center px-5 py-10 sm:px-8">
@@ -77,6 +94,17 @@ function AdminLogin() {
                   </p>
                 </div>
 
+                {errorMessage ? (
+                  <div className="mb-5 border border-[#5a2a2a] bg-[#1a0f10] px-4 py-3">
+                    <p className="text-sm font-medium text-[#ffb4b4]">{errorMessage}</p>
+                    {debugMessage ? (
+                      <p className="mt-2 break-words font-mono text-xs leading-6 text-[#d7a3a3]">
+                        {debugMessage}
+                      </p>
+                    ) : null}
+                  </div>
+                ) : null}
+
                 <form action="/api/admin/login" method="POST" className="space-y-5">
                   <label className="block">
                     <span className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.18em] text-[#7d8a99]">
@@ -122,11 +150,18 @@ function AdminLogin() {
   );
 }
 
-export default async function AdminPage() {
+export default async function AdminPage({
+  searchParams,
+}: {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const { session } = await getAdminData();
+  const resolvedSearchParams = searchParams ? await searchParams : undefined;
+  const errorMessage = readSearchParam(resolvedSearchParams?.error);
+  const debugMessage = readSearchParam(resolvedSearchParams?.debug);
 
   if (!session) {
-    return <AdminLogin />;
+    return <AdminLogin errorMessage={errorMessage} debugMessage={debugMessage} />;
   }
 
   const posts = getAllPosts(true);

@@ -41,6 +41,48 @@ function getAdminRedirectUrl(request: Request) {
   return new URL("/admin", getOrigin(request));
 }
 
+function isDebugLoginEnabled() {
+  const value = process.env.ADMIN_LOGIN_DEBUG?.trim().toLowerCase();
+  return value === "1" || value === "true" || value === "yes";
+}
+
+function toDebugMessage(error: unknown) {
+  if (!isDebugLoginEnabled()) {
+    return undefined;
+  }
+
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  return String(error);
+}
+
+function loginErrorResponse(request: Request, message: string, error: unknown) {
+  const contentType = request.headers.get("content-type");
+  const expectsHtml = isFormRequest(contentType);
+  const debug = toDebugMessage(error);
+
+  if (expectsHtml) {
+    const url = getAdminRedirectUrl(request);
+    url.searchParams.set("error", message);
+
+    if (debug) {
+      url.searchParams.set("debug", debug.slice(0, 300));
+    }
+
+    return NextResponse.redirect(url, { status: 303 });
+  }
+
+  return NextResponse.json(
+    {
+      error: message,
+      debug,
+    },
+    { status: 500 },
+  );
+}
+
 export async function POST(request: Request) {
   try {
     await clearExpiredAdminSessions();
@@ -70,7 +112,9 @@ export async function POST(request: Request) {
 
     if (!username || !password) {
       if (expectsHtml) {
-        return NextResponse.redirect(getAdminRedirectUrl(request), {
+        const url = getAdminRedirectUrl(request);
+        url.searchParams.set("error", "Username and password are required.");
+        return NextResponse.redirect(url, {
           status: 303,
         });
       }
@@ -82,7 +126,9 @@ export async function POST(request: Request) {
 
     if (!admin) {
       if (expectsHtml) {
-        return NextResponse.redirect(getAdminRedirectUrl(request), {
+        const url = getAdminRedirectUrl(request);
+        url.searchParams.set("error", "Invalid username or password.");
+        return NextResponse.redirect(url, {
           status: 303,
         });
       }
@@ -94,7 +140,9 @@ export async function POST(request: Request) {
 
     if (!passwordMatches) {
       if (expectsHtml) {
-        return NextResponse.redirect(getAdminRedirectUrl(request), {
+        const url = getAdminRedirectUrl(request);
+        url.searchParams.set("error", "Invalid username or password.");
+        return NextResponse.redirect(url, {
           status: 303,
         });
       }
@@ -127,7 +175,7 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error("[admin-login] Failed to sign in.", error);
 
-    return NextResponse.json({ error: "Unable to sign in right now." }, { status: 500 });
+    return loginErrorResponse(request, "Unable to sign in right now.", error);
   }
 }
 
