@@ -188,7 +188,7 @@ export default function TextSelectionShare({ postTitle, postUrl }: Props) {
   }, [pop.visible, hide]);
 
   useEffect(() => {
-    setMounted(true);
+    if (copyTimer.current) clearTimeout(copyTimer.current);
     return () => {
       setMounted(false);
       if (copyTimer.current) clearTimeout(copyTimer.current);

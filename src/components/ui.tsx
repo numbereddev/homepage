@@ -341,8 +341,8 @@ export function PostCard({
           </div>
           <div className="absolute inset-0 bg-black/88 transition duration-500 group-hover:bg-black/72" />
           <div className="absolute inset-0 backdrop-blur-md transition duration-500 group-hover:backdrop-blur-sm" />
-          <div className="absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-black/45 to-transparent" />
-          <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-black/70 to-transparent" />
+          <div className="absolute inset-x-0 top-0 h-40 bg-linear-to-b from-black/45 to-transparent" />
+          <div className="absolute inset-x-0 bottom-0 h-40 bg-linear-to-t from-black/70 to-transparent" />
         </>
       ) : null}
 
@@ -487,8 +487,8 @@ export function ProjectCard({
           </div>
           <div className="absolute inset-0 bg-black/88 transition duration-500 group-hover:bg-black/72" />
           <div className="absolute inset-0 backdrop-blur-md transition duration-500 group-hover:backdrop-blur-sm" />
-          <div className="absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-black/45 to-transparent" />
-          <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-black/70 to-transparent" />
+          <div className="absolute inset-x-0 top-0 h-40 bg-linear-to-b from-black/45 to-transparent" />
+          <div className="absolute inset-x-0 bottom-0 h-40 bg-linear-to-t from-black/70 to-transparent" />
         </>
       ) : null}
 

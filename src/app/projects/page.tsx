@@ -4,7 +4,7 @@ import type { Metadata } from "next";
 import { getAllProjects } from "@/lib/content";
 import { formatTimestamp } from "@/lib/utils";
 import { t } from "@/lib/tokens";
-import { PageShell, SiteNav, EmptyState, PostMeta, TagList } from "@/components/ui";
+import { PageShell, SiteNav, EmptyState, TagList } from "@/components/ui";
 import { AnimatedDiv, PageTransition, StaggerIn } from "@/components/animations";
 
 export const metadata: Metadata = {
@@ -75,8 +75,8 @@ export default function ProjectsIndexPage() {
                       />
                       <div className="absolute inset-0 bg-black/88 transition duration-500 group-hover:bg-black/72" />
                       <div className="absolute inset-0 backdrop-blur-md transition duration-500 group-hover:backdrop-blur-sm" />
-                      <div className="absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-black/35 to-transparent" />
-                      <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-black/65 to-transparent" />
+                      <div className="absolute inset-x-0 top-0 h-32 bg-linear-to-b from-black/35 to-transparent" />
+                      <div className="absolute inset-x-0 bottom-0 h-40 bg-linear-to-t from-black/65 to-transparent" />
                     </>
                   ) : null}
 
