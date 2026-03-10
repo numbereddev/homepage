@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
+import { revalidatePath } from "next/cache";
 
 import {
   deleteProject,
@@ -230,8 +231,13 @@ export async function POST(request: Request) {
   });
 
   if (isRenaming) {
+    revalidatePath(`/projects/${originalSlug}`);
     deleteProject(originalSlug);
   }
+
+  revalidatePath("/");
+  revalidatePath("/projects");
+  revalidatePath(`/projects/${finalSlug}`);
 
   const project = await getProjectBySlug(finalSlug, { includeDraft: true });
 

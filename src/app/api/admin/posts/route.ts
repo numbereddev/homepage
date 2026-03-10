@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 
 import {
@@ -180,8 +181,13 @@ export async function POST(request: Request) {
   });
 
   if (isRenaming) {
+    revalidatePath(`/blog/${originalSlug}`);
     deletePost(originalSlug);
   }
+
+  revalidatePath("/");
+  revalidatePath("/blog");
+  revalidatePath(`/blog/${finalSlug}`);
 
   const post = await getPostBySlug(finalSlug, { includeDraft: true });
 
