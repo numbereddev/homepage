@@ -210,7 +210,7 @@ export default function ProjectGallery({ title, items }: ProjectGalleryProps) {
             key={currentItem.id}
             type="button"
             onClick={() => openModal(carouselIndex)}
-            className="group relative block w-full text-left"
+            className="group relative block aspect-video w-full max-w-5xl mx-auto text-left bg-black/35"
             aria-label={`Open ${isAssetVideo(currentItem) ? "video" : "image"} ${carouselIndex + 1} in gallery`}
           >
             <div className="absolute right-3 top-3 z-10 border border-white/10 bg-black/65 px-2 py-1 text-[10px] font-medium uppercase tracking-[0.16em] text-white/80">
@@ -222,16 +222,16 @@ export default function ProjectGallery({ title, items }: ProjectGalleryProps) {
             </div>
 
             {isAssetVideo(currentItem) ? (
-              <div className="relative aspect-video w-full bg-black">
+              <>
                 <video
                   src={currentItem.url}
                   muted
                   playsInline
                   preload="metadata"
-                  className="h-full w-full object-cover"
+                  className="h-full w-full object-contain"
                 />
                 <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-                  <div className="flex h-14 w-14 items-center justify-center rounded-full border border-white/15 bg-black/60 text-white">
+                  <div className="flex h-14 w-14 items-center justify-center rounded-full border border-white/15 bg-black/60 text-white backdrop-blur-sm">
                     <svg
                       width="20"
                       height="20"
@@ -243,7 +243,7 @@ export default function ProjectGallery({ title, items }: ProjectGalleryProps) {
                     </svg>
                   </div>
                 </div>
-              </div>
+              </>
             ) : (
               <Image
                 src={currentItem.url}
@@ -251,7 +251,7 @@ export default function ProjectGallery({ title, items }: ProjectGalleryProps) {
                 width={1200}
                 height={675}
                 unoptimized
-                className="h-auto w-full object-cover transition duration-300 group-hover:scale-[1.01]"
+                className="h-full w-full object-contain transition duration-300 group-hover:scale-[1.01]"
               />
             )}
           </button>
