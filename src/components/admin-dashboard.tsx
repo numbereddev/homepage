@@ -31,6 +31,11 @@ type PostItem = {
   readingTime?: number;
 };
 
+type GalleryMedia = {
+  url: string;
+  kind: "image" | "video";
+};
+
 type ProjectItem = {
   slug: string;
   title: string;
@@ -41,7 +46,7 @@ type ProjectItem = {
   tags: string[];
   cover?: string;
   readingTime?: number;
-  gallery: string[];
+  gallery: GalleryMedia[];
   isOpenSource: boolean;
   sourceUrl?: string;
 };

@@ -10,7 +10,22 @@ type RouteContext = {
   }>;
 };
 
+type GalleryMedia = {
+  url: string;
+  kind: "image" | "video";
+};
+
 const SESSION_COOKIE_NAME = "numbered-dev-admin-session";
+
+function inferGalleryKind(url: string): GalleryMedia["kind"] {
+  const normalized = url.split("?")[0]?.toLowerCase() ?? "";
+
+  if (/\.(mp4|webm|ogg|mov|m4v)$/.test(normalized)) {
+    return "video";
+  }
+
+  return "image";
+}
 
 async function requireAdminSession() {
   clearExpiredAdminSessions();
@@ -49,7 +64,12 @@ export async function GET(_: Request, context: RouteContext) {
       pinned: project.pinned,
       tags: project.tags,
       cover: project.cover ?? "",
-      gallery: project.gallery,
+      gallery: project.gallery.map(
+        (item): GalleryMedia =>
+          typeof item === "string"
+            ? { url: item, kind: inferGalleryKind(item) }
+            : { url: item.url, kind: item.kind },
+      ),
       isOpenSource: project.isOpenSource,
       sourceUrl: project.sourceUrl ?? "",
       content: project.content,
