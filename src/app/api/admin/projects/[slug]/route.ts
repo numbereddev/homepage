@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 
 import { deleteProject, getProjectBySlug } from "@/lib/content";
 import { clearExpiredAdminSessions, getAdminSession } from "@/lib/db";
+import { revalidatePath } from "next/cache";
 
 type RouteContext = {
   params: Promise<{
@@ -92,6 +93,10 @@ export async function DELETE(_: Request, context: RouteContext) {
   }
 
   deleteProject(slug);
+
+  revalidatePath("/");
+  revalidatePath("/projects");
+  revalidatePath(`/projects/${slug}`);
 
   return NextResponse.json({
     message: `Deleted "${project.title}".`,

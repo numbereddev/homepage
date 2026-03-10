@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
+import { revalidatePath } from "next/cache";
 
 import { deletePost, getPostBySlug } from "@/lib/content";
 import { clearExpiredAdminSessions, getAdminSession } from "@/lib/db";
@@ -94,6 +95,10 @@ export async function DELETE(_: Request, context: RouteContext) {
   }
 
   deletePost(slug);
+
+  revalidatePath("/");
+  revalidatePath("/blog");
+  revalidatePath(`/blog/${slug}`);
 
   return NextResponse.json({
     message: `Deleted "${post.title}".`,

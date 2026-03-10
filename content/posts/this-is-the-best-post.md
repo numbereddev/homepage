@@ -30,3 +30,5 @@ This is some cool markdown
 </div>
 
 ![beastk_pfp](/assets/beastk_pfp.webp)
+
+<video src="/assets/screenrecording.mov" controls></video>
