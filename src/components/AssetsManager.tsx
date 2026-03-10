@@ -163,7 +163,7 @@ export default function AssetsManager({ initialAssets }: AssetsManagerProps) {
   return (
     <div className="border border-[#202632] bg-[#0b0f14]">
       <div className="border-b border-[#202632] px-5 py-4">
-        <div className="flex items-center justify-between">
+        <div className="flex gap-4 items-center justify-between">
           <div>
             <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[#7d8a99]">
               Assets

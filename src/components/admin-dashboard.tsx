@@ -835,7 +835,7 @@ export default function AdminDashboard({
               </>
             )}
 
-            <hr className="pb-4" />
+            <hr className="pb-8 mt-8" />
 
             {/* ── Assets Manager ── */}
             <AssetsManager initialAssets={initialAssets} />

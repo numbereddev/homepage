@@ -3,6 +3,7 @@
 import { useState, useCallback, useRef } from "react";
 import CodeEditor from "./CodeEditor";
 import TokenPalette from "./TokenPalette";
+import { useSharedEditorModalKeyboardShortcuts } from "./sharedEditorModal";
 import {
   type ComponentDefinition,
   type ComponentInstance,
@@ -518,6 +519,19 @@ export default function ComponentDrawer({ onInsert, isOpen, onClose }: Component
   }
 
   // Component field editor view
+  useSharedEditorModalKeyboardShortcuts({
+    isOpen,
+    showConfirmClose: false,
+    showComponentDrawer: false,
+    showAssetPicker: false,
+    lockBodyScroll: true,
+    onSaveAction: () => {},
+    onUndoAction: () => {},
+    onRedoAction: () => {},
+    onRequestCloseAction: onClose,
+    onDismissConfirmCloseAction: onClose,
+  });
+
   if (editingInstance) {
     const { definition, instance } = editingInstance;
     const previewHtml = renderInstance(instance, definition);

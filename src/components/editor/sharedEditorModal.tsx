@@ -4,6 +4,57 @@ import { type ReactNode, useEffect } from "react";
 import type { EditorBlock } from "./VisualEditor";
 import type { AssetData, InsertType } from "./AssetPicker";
 
+let stableBodyScrollLockCount = 0;
+let stableBodyScrollLockY = 0;
+let stablePreviousBodyOverflow = "";
+let stablePreviousBodyPosition = "";
+let stablePreviousBodyTop = "";
+let stablePreviousBodyLeft = "";
+let stablePreviousBodyRight = "";
+let stablePreviousBodyWidth = "";
+let stablePreviousHtmlOverflow = "";
+
+function applyBodyScrollLock() {
+  if (typeof window === "undefined") return;
+
+  stableBodyScrollLockCount += 1;
+  if (stableBodyScrollLockCount > 1) return;
+
+  stableBodyScrollLockY = window.scrollY;
+  stablePreviousBodyOverflow = document.body.style.overflow;
+  stablePreviousBodyPosition = document.body.style.position;
+  stablePreviousBodyTop = document.body.style.top;
+  stablePreviousBodyLeft = document.body.style.left;
+  stablePreviousBodyRight = document.body.style.right;
+  stablePreviousBodyWidth = document.body.style.width;
+  stablePreviousHtmlOverflow = document.documentElement.style.overflow;
+
+  document.body.style.overflow = "hidden";
+  document.body.style.position = "fixed";
+  document.body.style.top = `-${stableBodyScrollLockY}px`;
+  document.body.style.left = "0";
+  document.body.style.right = "0";
+  document.body.style.width = "100%";
+  document.documentElement.style.overflow = "hidden";
+}
+
+function releaseBodyScrollLock() {
+  if (typeof window === "undefined") return;
+  if (stableBodyScrollLockCount === 0) return;
+
+  stableBodyScrollLockCount -= 1;
+  if (stableBodyScrollLockCount > 0) return;
+
+  document.body.style.overflow = stablePreviousBodyOverflow;
+  document.body.style.position = stablePreviousBodyPosition;
+  document.body.style.top = stablePreviousBodyTop;
+  document.body.style.left = stablePreviousBodyLeft;
+  document.body.style.right = stablePreviousBodyRight;
+  document.body.style.width = stablePreviousBodyWidth;
+  document.documentElement.style.overflow = stablePreviousHtmlOverflow;
+  window.scrollTo(0, stableBodyScrollLockY);
+}
+
 export type EditorTab = "editor" | "preview";
 
 export type SlugOptions = {
@@ -468,12 +519,8 @@ export function useSharedEditorModalKeyboardShortcuts({
   useEffect(() => {
     if (!isOpen) return;
 
-    const previousBodyOverflow = document.body.style.overflow;
-    const previousHtmlOverflow = document.documentElement.style.overflow;
-
     if (lockBodyScroll) {
-      document.body.style.overflow = "hidden";
-      document.documentElement.style.overflow = "hidden";
+      applyBodyScrollLock();
     }
 
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -521,8 +568,7 @@ export function useSharedEditorModalKeyboardShortcuts({
 
     return () => {
       if (lockBodyScroll) {
-        document.body.style.overflow = previousBodyOverflow;
-        document.documentElement.style.overflow = previousHtmlOverflow;
+        releaseBodyScrollLock();
       }
 
       window.removeEventListener("keydown", handleKeyDown);

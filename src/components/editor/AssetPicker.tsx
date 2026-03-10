@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useState, useCallback, useEffect } from "react";
 import AssetUploadModal, { type AssetData } from "./AssetUploadModal";
+import { useSharedEditorModalKeyboardShortcuts } from "./sharedEditorModal";
 
 declare global {
   interface Window {
@@ -180,6 +181,19 @@ export default function AssetPicker({
     const matchesFilter = filterType === "all" || category === filterType;
 
     return matchesSearch && matchesFilter;
+  });
+
+  useSharedEditorModalKeyboardShortcuts({
+    isOpen,
+    showConfirmClose: false,
+    showComponentDrawer: false,
+    showAssetPicker: false,
+    lockBodyScroll: true,
+    onSaveAction: () => {},
+    onUndoAction: () => {},
+    onRedoAction: () => {},
+    onRequestCloseAction: onCloseAction,
+    onDismissConfirmCloseAction: onCloseAction,
   });
 
   if (!isOpen) return null;
