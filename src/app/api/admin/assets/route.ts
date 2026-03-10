@@ -11,15 +11,15 @@ import {
   assetSlugExists,
   type AssetRow,
 } from "@/lib/db";
+import { ADMIN_SESSION_COOKIE_NAME } from "@/lib/auth";
 
-const SESSION_COOKIE_NAME = "numbered-dev-admin-session";
 const ASSETS_DIR = path.join(process.cwd(), "public", "assets");
 
 async function requireAdmin() {
   await clearExpiredAdminSessions();
 
   const cookieStore = await cookies();
-  const token = cookieStore.get(SESSION_COOKIE_NAME)?.value;
+  const token = cookieStore.get(ADMIN_SESSION_COOKIE_NAME)?.value;
 
   if (!token) {
     return null;

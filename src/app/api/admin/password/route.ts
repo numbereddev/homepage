@@ -2,6 +2,7 @@ import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 
+import { ADMIN_SESSION_COOKIE_NAME } from "@/lib/auth";
 import {
   clearExpiredAdminSessions,
   getAdminSession,
@@ -10,8 +11,6 @@ import {
   verifyPassword,
   updateAdminPassword,
 } from "@/lib/db";
-
-const SESSION_COOKIE_NAME = process.env.SESSION_COOKIE_NAME?.trim() || "numbered-dev-admin-session";
 
 type UpdatePasswordBody = {
   currentPassword?: unknown;
@@ -23,7 +22,7 @@ async function requireAdmin() {
   await clearExpiredAdminSessions();
 
   const cookieStore = await cookies();
-  const token = cookieStore.get(SESSION_COOKIE_NAME)?.value;
+  const token = cookieStore.get(ADMIN_SESSION_COOKIE_NAME)?.value;
 
   if (!token) {
     return null;
@@ -86,7 +85,7 @@ export async function POST(request: Request) {
 
     const newPasswordHash = await hashPassword(newPassword);
     await updateAdminPassword(admin.id, newPasswordHash);
-	revalidatePath("/admin");
+    revalidatePath("/admin");
 
     return NextResponse.json({
       success: true,

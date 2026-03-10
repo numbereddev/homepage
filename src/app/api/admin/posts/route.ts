@@ -11,6 +11,7 @@ import {
   type PostMeta,
 } from "@/lib/content";
 import { clearExpiredAdminSessions, getAdminSession } from "@/lib/db";
+import { ADMIN_SESSION_COOKIE_NAME } from "@/lib/auth";
 
 type ContentMode = "markdown" | "html";
 
@@ -39,7 +40,7 @@ type PostRecordResponse = {
   readingTime?: number;
 };
 
-const SESSION_COOKIE_NAME = "numbered-dev-admin-session";
+const SESSION_COOKIE_NAME = ADMIN_SESSION_COOKIE_NAME;
 
 async function requireAdmin() {
   clearExpiredAdminSessions();

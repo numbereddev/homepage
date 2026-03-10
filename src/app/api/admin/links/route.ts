@@ -11,14 +11,13 @@ import {
   clearExpiredAdminSessions,
   getAdminSession,
 } from "@/lib/db";
-
-const SESSION_COOKIE_NAME = process.env.SESSION_COOKIE_NAME?.trim() || "numbered-dev-admin-session";
+import { ADMIN_SESSION_COOKIE_NAME } from "@/lib/auth";
 
 async function requireAdmin() {
   await clearExpiredAdminSessions();
 
   const cookieStore = await cookies();
-  const token = cookieStore.get(SESSION_COOKIE_NAME)?.value;
+  const token = cookieStore.get(ADMIN_SESSION_COOKIE_NAME)?.value;
 
   if (!token) return null;
 
@@ -71,7 +70,7 @@ export async function POST(request: Request) {
 
   try {
     const link = await createLink(label, url);
-	revalidatePath("/");
+    revalidatePath("/");
     return NextResponse.json({ link }, { status: 201 });
   } catch (err) {
     console.error("[links] POST failed", err);
@@ -141,7 +140,7 @@ export async function PATCH(request: Request) {
 
   try {
     const link = await updateLink(id, label, url);
-	revalidatePath("/");
+    revalidatePath("/");
 
     if (!link) {
       return NextResponse.json({ error: "Link not found." }, { status: 404 });

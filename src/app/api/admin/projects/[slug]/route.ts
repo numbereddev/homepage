@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 
 import { deleteProject, getProjectBySlug } from "@/lib/content";
+import { ADMIN_SESSION_COOKIE_NAME } from "@/lib/auth";
 import { clearExpiredAdminSessions, getAdminSession } from "@/lib/db";
 import { revalidatePath } from "next/cache";
 
@@ -16,7 +17,7 @@ type GalleryMedia = {
   kind: "image" | "video";
 };
 
-const SESSION_COOKIE_NAME = "numbered-dev-admin-session";
+const SESSION_COOKIE_NAME = ADMIN_SESSION_COOKIE_NAME;
 
 function inferGalleryKind(url: string): GalleryMedia["kind"] {
   const normalized = url.split("?")[0]?.toLowerCase() ?? "";

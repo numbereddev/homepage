@@ -3,14 +3,13 @@ import { cookies } from "next/headers";
 
 import { renderContent } from "@/lib/renderer";
 import { clearExpiredAdminSessions, getAdminSession } from "@/lib/db";
-
-const SESSION_COOKIE_NAME = "numbered-dev-admin-session";
+import { ADMIN_SESSION_COOKIE_NAME } from "@/lib/auth";
 
 async function requireAdmin() {
   clearExpiredAdminSessions();
 
   const cookieStore = await cookies();
-  const token = cookieStore.get(SESSION_COOKIE_NAME)?.value;
+  const token = cookieStore.get(ADMIN_SESSION_COOKIE_NAME)?.value;
 
   if (!token) {
     return null;
@@ -49,9 +48,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ html });
   } catch (error) {
     console.error("Preview render error:", error);
-    return NextResponse.json(
-      { error: "Failed to render preview.", html: "" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Failed to render preview.", html: "" }, { status: 500 });
   }
 }

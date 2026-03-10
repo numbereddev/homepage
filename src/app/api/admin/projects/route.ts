@@ -11,6 +11,7 @@ import {
   type ProjectMeta,
 } from "@/lib/content";
 import { clearExpiredAdminSessions, getAdminSession } from "@/lib/db";
+import { ADMIN_SESSION_COOKIE_NAME } from "@/lib/auth";
 
 type GalleryMediaInput = {
   url?: string;
@@ -52,7 +53,7 @@ type ProjectRecordResponse = {
   sourceUrl?: string;
 };
 
-const SESSION_COOKIE_NAME = "numbered-dev-admin-session";
+const SESSION_COOKIE_NAME = ADMIN_SESSION_COOKIE_NAME;
 
 async function requireAdmin() {
   clearExpiredAdminSessions();

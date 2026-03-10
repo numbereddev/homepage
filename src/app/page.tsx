@@ -2,6 +2,7 @@ import Link from "next/link";
 import { cookies } from "next/headers";
 import { getAllPosts, getPinnedProjects } from "@/lib/content";
 import { getAllLinks, getAdminSession } from "@/lib/db";
+import { ADMIN_SESSION_COOKIE_NAME } from "@/lib/auth";
 import { formatTimestamp } from "@/lib/utils";
 import { t } from "@/lib/tokens";
 import { AnimatedDiv, AnimatedSection, PageTransition, StaggerIn } from "@/components/animations";
@@ -39,15 +40,13 @@ const WORK_ITEMS = [
   },
 ];
 
-const SESSION_COOKIE_NAME = process.env.SESSION_COOKIE_NAME?.trim() || "numbered-dev-admin-session";
-
 export default async function HomePage() {
   const latestPosts = getAllPosts(false).slice(0, 4);
   const pinnedProjects = getPinnedProjects().slice(0, 3);
   const links = await getAllLinks();
 
   const cookieStore = await cookies();
-  const sessionToken = cookieStore.get(SESSION_COOKIE_NAME)?.value;
+  const sessionToken = cookieStore.get(ADMIN_SESSION_COOKIE_NAME)?.value;
   const adminSession = sessionToken ? await getAdminSession(sessionToken) : null;
 
   const header = (

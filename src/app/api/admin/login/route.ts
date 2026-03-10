@@ -8,9 +8,7 @@ import {
   getAdminByUsername,
   verifyPassword,
 } from "@/lib/db";
-
-const SESSION_COOKIE_NAME = process.env.SESSION_COOKIE_NAME?.trim() || "numbered-dev-admin-session";
-const SESSION_DURATION_DAYS = 7;
+import { ADMIN_SESSION_COOKIE_NAME, ADMIN_SESSION_DURATION_DAYS } from "@/lib/auth";
 
 function unauthorized(message = "Invalid username or password.") {
   return NextResponse.json({ error: message }, { status: 401 });
@@ -104,10 +102,10 @@ export async function POST(request: Request) {
       return unauthorized();
     }
 
-    const session = await createAdminSession(admin.id, SESSION_DURATION_DAYS);
+    const session = await createAdminSession(admin.id, ADMIN_SESSION_DURATION_DAYS);
     const cookieStore = await cookies();
 
-    cookieStore.set(SESSION_COOKIE_NAME, session.token, {
+    cookieStore.set(ADMIN_SESSION_COOKIE_NAME, session.token, {
       httpOnly: true,
       sameSite: "lax",
       secure: process.env.NODE_ENV === "production",
@@ -136,13 +134,13 @@ export async function POST(request: Request) {
 export async function DELETE() {
   try {
     const cookieStore = await cookies();
-    const sessionToken = cookieStore.get(SESSION_COOKIE_NAME)?.value;
+    const sessionToken = cookieStore.get(ADMIN_SESSION_COOKIE_NAME)?.value;
 
     if (sessionToken) {
       await deleteAdminSession(sessionToken);
     }
 
-    cookieStore.set(SESSION_COOKIE_NAME, "", {
+    cookieStore.set(ADMIN_SESSION_COOKIE_NAME, "", {
       httpOnly: true,
       sameSite: "lax",
       secure: process.env.NODE_ENV === "production",

@@ -2,12 +2,13 @@ import { cookies } from "next/headers";
 import AdminDashboard from "@/components/admin-dashboard";
 import { getAllPosts, getAllProjects } from "@/lib/content";
 import { clearExpiredAdminSessions, getAdminSession, getAllLinks, getAllAssets } from "@/lib/db";
+import { ADMIN_SESSION_COOKIE_NAME } from "@/lib/auth";
 
 async function getAdminData() {
   await clearExpiredAdminSessions();
 
   const cookieStore = await cookies();
-  const token = cookieStore.get("numbered-dev-admin-session")?.value;
+  const token = cookieStore.get(ADMIN_SESSION_COOKIE_NAME)?.value;
 
   if (!token) {
     return { session: null };
