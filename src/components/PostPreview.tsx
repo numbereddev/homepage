@@ -80,13 +80,13 @@ export default function PostPreview({ content, className = "" }: PostPreviewProp
     <div className={`relative h-full overflow-y-auto ${className}`}>
       {isLoading && (
         <div className="absolute top-2 right-2 z-10">
-          <div className="px-2 py-1 text-[9px] uppercase tracking-[0.14em] text-[#607080] bg-[#0a0d12]/80 border border-[#202632]">
+          <div className="px-2 py-1 text-[9px] uppercase tracking-[0.14em] text-[#607080] bg-neutral-950 border border-[#202632]">
             Rendering...
           </div>
         </div>
       )}
       {error ? (
-        <div className="flex h-full items-center justify-center bg-[#080b10]">
+        <div className="flex h-full items-center justify-center bg-neutral-950">
           <div className="text-sm text-[#ff8f8f]">{error}</div>
         </div>
       ) : (
