@@ -2,11 +2,11 @@ import type { Metadata } from "next";
 
 import { notFound } from "next/navigation";
 
-import { getAllPosts, getPostBySlug, getPostSlugs } from "@/lib/content";
+import { getAllPosts, getPostBySlug, getPostSlugs, getPinnedProjects } from "@/lib/content";
 import { getPostStats } from "@/lib/db";
 import { formatTimestamp } from "@/lib/utils";
 import { t } from "@/lib/tokens";
-import { PageShell, SiteNav, PostMeta, TagList, Panel, PostRow } from "@/components/ui";
+import { PageShell, SiteNav, PostMeta, TagList, Panel, ProjectRow } from "@/components/ui";
 import { AnimatedDiv } from "@/components/animations";
 import TextSelectionShare from "@/components/TextSelectionShare";
 import PostEngagement, { ReactionBar } from "@/components/PostEngagement";
@@ -55,9 +55,7 @@ export default async function BlogPostPage({ params }: PageProps) {
 
   if (!post) notFound();
 
-  const relatedPosts = getAllPosts(false)
-    .filter((p) => p.slug !== slug)
-    .slice(0, 3);
+  const pinnedProjects = getPinnedProjects().slice(0, 3);
 
   // Fetch initial stats server-side so there's no loading flash
   const initialStats = getPostStats(post.slug);
@@ -176,23 +174,23 @@ export default async function BlogPostPage({ params }: PageProps) {
             </Panel>
           </AnimatedDiv>
 
-          {/* More posts */}
+          {/* Pinned Projects */}
           <AnimatedDiv delay={380} duration={700} distance={18}>
-            <Panel label="More posts">
-              {relatedPosts.length === 0 ? (
+            <Panel label="Featured Projects">
+              {pinnedProjects.length === 0 ? (
                 <p className={`${t.pad.panel} text-sm ${t.color.muted}`}>
-                  No additional posts yet.
+                  No featured projects yet.
                 </p>
               ) : (
                 <div className={`divide-y ${t.color.divider}`}>
-                  {relatedPosts.map((item) => (
-                    <PostRow
+                  {pinnedProjects.map((item) => (
+                    <ProjectRow
                       key={item.slug}
                       slug={item.slug}
                       title={item.title}
                       excerpt={item.excerpt}
                       date={formatTimestamp(item.createdAt)}
-                      readingTime={item.readingTime}
+                      isOpenSource={item.isOpenSource}
                       variant="flush"
                     />
                   ))}

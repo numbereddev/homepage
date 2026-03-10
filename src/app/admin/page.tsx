@@ -1,6 +1,6 @@
 import { cookies } from "next/headers";
 import AdminDashboard from "@/components/admin-dashboard";
-import { getAllPosts } from "@/lib/content";
+import { getAllPosts, getAllProjects } from "@/lib/content";
 import { clearExpiredAdminSessions, getAdminSession, getAllLinks, getAllAssets } from "@/lib/db";
 
 async function getAdminData() {
@@ -129,6 +129,7 @@ export default async function AdminPage() {
   }
 
   const posts = getAllPosts(true);
+  const projects = getAllProjects(true);
   const links = getAllLinks();
   const assets = getAllAssets();
 
@@ -150,6 +151,19 @@ export default async function AdminPage() {
         tags: post.tags,
         cover: post.cover,
         readingTime: post.readingTime,
+      }))}
+      initialProjects={projects.map((proj) => ({
+        slug: proj.slug,
+        title: proj.title,
+        excerpt: proj.excerpt,
+        createdAt: proj.createdAt,
+        published: proj.published,
+        pinned: proj.pinned,
+        tags: proj.tags,
+        cover: proj.cover,
+        gallery: proj.gallery,
+        isOpenSource: proj.isOpenSource,
+        sourceUrl: proj.sourceUrl,
       }))}
       adminUsername={session.username}
       initialLinks={links.map((l) => ({

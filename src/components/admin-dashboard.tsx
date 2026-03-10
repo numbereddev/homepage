@@ -6,6 +6,11 @@ import PostEditorModal, {
   createBlankPost,
   postToEditorData,
 } from "./editor/PostEditorModal";
+import ProjectEditorModal, {
+  type ProjectData,
+  createBlankProject,
+  projectToEditorData,
+} from "./editor/ProjectEditorModal";
 import AssetsManager, { type AssetData } from "./AssetsManager";
 
 type LinkItem = {
@@ -26,8 +31,24 @@ type PostItem = {
   readingTime?: number;
 };
 
+type ProjectItem = {
+  slug: string;
+  title: string;
+  excerpt: string;
+  createdAt: number;
+  published: boolean;
+  pinned: boolean;
+  tags: string[];
+  cover?: string;
+  readingTime?: number;
+  gallery: string[];
+  isOpenSource: boolean;
+  sourceUrl?: string;
+};
+
 type AdminDashboardProps = {
   initialPosts: PostItem[];
+  initialProjects: ProjectItem[];
   adminUsername: string;
   initialLinks: LinkItem[];
   initialAssets: AssetData[];
@@ -53,6 +74,7 @@ function postStatusLabel(published: boolean) {
 
 export default function AdminDashboard({
   initialPosts,
+  initialProjects,
   adminUsername,
   initialLinks,
   initialAssets,
@@ -81,6 +103,15 @@ export default function AdminDashboard({
   const [searchQuery, setSearchQuery] = useState("");
   const [filterStatus, setFilterStatus] = useState<"all" | "published" | "draft">("all");
 
+  // Projects state
+  const [projects, setProjects] = useState<ProjectItem[]>(initialProjects);
+  const [isProjectEditorOpen, setIsProjectEditorOpen] = useState(false);
+  const [currentProject, setCurrentProject] = useState<ProjectData | null>(null);
+  const [isSavingProject, setIsSavingProject] = useState(false);
+  const [isDeletingProject, setIsDeletingProject] = useState(false);
+  const [projectSearchQuery, setProjectSearchQuery] = useState("");
+  const [activeAdminTab, setActiveAdminTab] = useState<"posts" | "projects">("posts");
+
   const sortedPosts = [...posts].sort((a, b) => b.createdAt - a.createdAt);
 
   const filteredPosts = sortedPosts.filter((post) => {
@@ -100,6 +131,123 @@ export default function AdminDashboard({
 
   const publishedCount = posts.filter((p) => p.published).length;
   const draftCount = posts.filter((p) => !p.published).length;
+
+  const sortedProjects = [...projects].sort((a, b) => b.createdAt - a.createdAt);
+  const filteredProjects = sortedProjects.filter((proj) => {
+    if (!projectSearchQuery) return true;
+    const q = projectSearchQuery.toLowerCase();
+    return (
+      proj.title.toLowerCase().includes(q) ||
+      proj.excerpt.toLowerCase().includes(q) ||
+      proj.slug.toLowerCase().includes(q)
+    );
+  });
+  const publishedProjectCount = projects.filter((p) => p.published).length;
+  const draftProjectCount = projects.filter((p) => !p.published).length;
+
+  const openNewProject = useCallback(() => {
+    setCurrentProject(createBlankProject());
+    setIsProjectEditorOpen(true);
+    setStatusMessage("");
+  }, []);
+
+  const openExistingProject = useCallback(async (slug: string) => {
+    setStatusMessage("Loading project...");
+    try {
+      const response = await fetch(`/api/admin/projects/${slug}`, {
+        method: "GET",
+        credentials: "include",
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to load project.");
+      }
+      if (!data.project) {
+        throw new Error("Project data not found.");
+      }
+      setCurrentProject(projectToEditorData(data.project));
+      setIsProjectEditorOpen(true);
+      setStatusMessage("");
+    } catch (err) {
+      setStatusMessage(err instanceof Error ? err.message : "Failed to load project.");
+    }
+  }, []);
+
+  const closeProjectEditor = useCallback(() => {
+    setIsProjectEditorOpen(false);
+    setCurrentProject(null);
+  }, []);
+
+  const handleSaveProject = useCallback(async (proj: ProjectData) => {
+    setIsSavingProject(true);
+    try {
+      const response = await fetch("/api/admin/projects", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          originalSlug: proj.originalSlug,
+          slug: proj.slug,
+          title: proj.title,
+          excerpt: proj.excerpt,
+          createdAt: proj.createdAt,
+          published: proj.published,
+          pinned: proj.pinned,
+          tags: proj.tags
+            .split(",")
+            .map((tag) => tag.trim())
+            .filter(Boolean),
+          cover: proj.cover,
+          gallery: proj.gallery,
+          isOpenSource: proj.isOpenSource,
+          sourceUrl: proj.sourceUrl,
+          content: proj.content,
+        }),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to save project.");
+      }
+      setProjects((current) => {
+        const filtered = current.filter(
+          (item) => item.slug !== proj.originalSlug && item.slug !== data.slug,
+        );
+        return [data.project, ...filtered];
+      });
+      setCurrentProject((prev) =>
+        prev ? { ...prev, originalSlug: data.slug, slug: data.slug } : null,
+      );
+      setStatusMessage(`Saved "${data.project.title}".`);
+    } catch (err) {
+      throw err;
+    } finally {
+      setIsSavingProject(false);
+    }
+  }, []);
+
+  const handleDeleteProject = useCallback(
+    async (slug: string) => {
+      setIsDeletingProject(true);
+      try {
+        const response = await fetch(`/api/admin/projects/${slug}`, {
+          method: "DELETE",
+          credentials: "include",
+        });
+        const data = await response.json();
+        if (!response.ok) {
+          throw new Error(data.error || "Failed to delete project.");
+        }
+        setProjects((current) => current.filter((p) => p.slug !== slug));
+        closeProjectEditor();
+        setStatusMessage(data.message || "Project deleted.");
+      } catch (err) {
+        throw err;
+      } finally {
+        setIsDeletingProject(false);
+      }
+    },
+    [closeProjectEditor],
+  );
 
   const openNewPost = useCallback(() => {
     setCurrentPost(createBlankPost());
@@ -439,111 +587,242 @@ export default function AdminDashboard({
       <main className="mx-auto max-w-7xl px-6 py-8 lg:px-8">
         <div className="grid gap-8 lg:grid-cols-[1fr_320px]">
           <div>
-            <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <h2 className="text-2xl font-semibold tracking-tight text-white">Posts</h2>
-                <p className="mt-1 text-sm text-[#8fa1b3]">
-                  {posts.length} total · {publishedCount} published · {draftCount} drafts
-                </p>
-              </div>
-
+            {/* Tab switcher: Posts / Projects */}
+            <div className="mb-6 flex border border-[#202632]">
               <button
                 type="button"
-                onClick={openNewPost}
-                className="shrink-0 border border-[#3a4758] bg-[#f5f7fa] px-5 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-[#0a0d12] transition hover:bg-[#dfe6ee]"
+                onClick={() => setActiveAdminTab("posts")}
+                className={[
+                  "flex-1 px-4 py-3 text-[10px] font-semibold uppercase tracking-[0.16em] transition",
+                  activeAdminTab === "posts"
+                    ? "bg-[#f5f7fa] text-[#0a0d12]"
+                    : "text-[#c7d0db] hover:bg-[#151c25]",
+                ].join(" ")}
               >
-                + New Post
+                Posts
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveAdminTab("projects")}
+                className={[
+                  "flex-1 px-4 py-3 text-[10px] font-semibold uppercase tracking-[0.16em] transition",
+                  activeAdminTab === "projects"
+                    ? "bg-[#f5f7fa] text-[#0a0d12]"
+                    : "text-[#c7d0db] hover:bg-[#151c25]",
+                ].join(" ")}
+              >
+                Projects
               </button>
             </div>
 
-            <div className="mb-5 flex flex-col gap-3 sm:flex-row">
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search posts..."
-                className="flex-1 border border-[#202632] bg-[#0b0f14] px-4 py-3 text-sm text-white outline-none transition placeholder:text-[#506172] focus:border-[#7dd3fc]"
-              />
-
-              <div className="flex border border-[#202632]">
-                {(["all", "published", "draft"] as const).map((status) => (
+            {activeAdminTab === "posts" ? (
+              <>
+                <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <h2 className="text-2xl font-semibold tracking-tight text-white">Posts</h2>
+                    <p className="mt-1 text-sm text-[#8fa1b3]">
+                      {posts.length} total · {publishedCount} published · {draftCount} drafts
+                    </p>
+                  </div>
                   <button
-                    key={status}
                     type="button"
-                    onClick={() => setFilterStatus(status)}
-                    className={[
-                      "px-4 py-3 text-[10px] font-semibold uppercase tracking-[0.16em] transition",
-                      filterStatus === status
-                        ? "bg-[#f5f7fa] text-[#0a0d12]"
-                        : "text-[#c7d0db] hover:bg-[#151c25]",
-                    ].join(" ")}
+                    onClick={openNewPost}
+                    className="shrink-0 border border-[#3a4758] bg-[#f5f7fa] px-5 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-[#0a0d12] transition hover:bg-[#dfe6ee]"
                   >
-                    {status}
+                    + New Post
                   </button>
-                ))}
-              </div>
-            </div>
-
-            {statusMessage && (
-              <div className="mb-5 border border-[#202632] bg-[#0b0f14] px-4 py-3">
-                <p className="text-sm text-[#9fb0bf]">{statusMessage}</p>
-              </div>
-            )}
-
-            <div className="space-y-3 mb-4">
-              {filteredPosts.length === 0 ? (
-                <div className="border border-[#202632] bg-[#0b0f14] p-8 text-center">
-                  <p className="text-sm text-[#8fa1b3]">
-                    {posts.length === 0
-                      ? "No posts yet. Create your first article."
-                      : "No posts match your search."}
-                  </p>
                 </div>
-              ) : (
-                filteredPosts.map((post) => (
-                  <button
-                    key={post.slug}
-                    type="button"
-                    onClick={() => openExistingPost(post.slug)}
-                    className="group block w-full border border-[#202632] bg-[#0b0f14] p-5 text-left transition hover:border-[#3a4758] hover:bg-[#0f141b]"
-                  >
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="flex-1 min-w-0">
-                        <h3 className="text-base font-semibold text-[#f5f7fa] group-hover:text-white truncate">
-                          {post.title}
-                        </h3>
-                        <p className="mt-2 text-sm text-[#8fa1b3] line-clamp-2 leading-relaxed">
-                          {post.excerpt}
-                        </p>
 
-                        <div className="mt-3 flex flex-wrap items-center gap-3 text-[11px] text-[#607080]">
-                          <span>{formatTimestamp(post.createdAt)}</span>
-                          <span>·</span>
-                          <span className="text-[#7dd3fc]">/blog/{post.slug}</span>
-                          {post.tags.length > 0 && (
-                            <>
-                              <span>·</span>
-                              <span>{post.tags.slice(0, 3).join(", ")}</span>
-                            </>
-                          )}
-                        </div>
-                      </div>
-
-                      <span
+                <div className="mb-5 flex flex-col gap-3 sm:flex-row">
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Search posts..."
+                    className="flex-1 border border-[#202632] bg-[#0b0f14] px-4 py-3 text-sm text-white outline-none transition placeholder:text-[#506172] focus:border-[#7dd3fc]"
+                  />
+                  <div className="flex border border-[#202632]">
+                    {(["all", "published", "draft"] as const).map((status) => (
+                      <button
+                        key={status}
+                        type="button"
+                        onClick={() => setFilterStatus(status)}
                         className={[
-                          "shrink-0 border px-2 py-1 text-[9px] font-semibold uppercase tracking-[0.16em]",
-                          post.published
-                            ? "border-[#294b36] text-[#92d0a6]"
-                            : "border-[#4d3c1a] text-[#d4b16a]",
+                          "px-4 py-3 text-[10px] font-semibold uppercase tracking-[0.16em] transition",
+                          filterStatus === status
+                            ? "bg-[#f5f7fa] text-[#0a0d12]"
+                            : "text-[#c7d0db] hover:bg-[#151c25]",
                         ].join(" ")}
                       >
-                        {postStatusLabel(post.published)}
-                      </span>
+                        {status}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {statusMessage && (
+                  <div className="mb-5 border border-[#202632] bg-[#0b0f14] px-4 py-3">
+                    <p className="text-sm text-[#9fb0bf]">{statusMessage}</p>
+                  </div>
+                )}
+
+                <div className="space-y-3 mb-4">
+                  {filteredPosts.length === 0 ? (
+                    <div className="border border-[#202632] bg-[#0b0f14] p-8 text-center">
+                      <p className="text-sm text-[#8fa1b3]">
+                        {posts.length === 0
+                          ? "No posts yet. Create your first article."
+                          : "No posts match your search."}
+                      </p>
                     </div>
+                  ) : (
+                    filteredPosts.map((post) => (
+                      <button
+                        key={post.slug}
+                        type="button"
+                        onClick={() => openExistingPost(post.slug)}
+                        className="group block w-full border border-[#202632] bg-[#0b0f14] p-5 text-left transition hover:border-[#3a4758] hover:bg-[#0f141b]"
+                      >
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex-1 min-w-0">
+                            <h3 className="text-base font-semibold text-[#f5f7fa] group-hover:text-white truncate">
+                              {post.title}
+                            </h3>
+                            <p className="mt-2 text-sm text-[#8fa1b3] line-clamp-2 leading-relaxed">
+                              {post.excerpt}
+                            </p>
+                            <div className="mt-3 flex flex-wrap items-center gap-3 text-[11px] text-[#607080]">
+                              <span>{formatTimestamp(post.createdAt)}</span>
+                              <span>·</span>
+                              <span className="text-[#7dd3fc]">/blog/{post.slug}</span>
+                              {post.tags.length > 0 && (
+                                <>
+                                  <span>·</span>
+                                  <span>{post.tags.slice(0, 3).join(", ")}</span>
+                                </>
+                              )}
+                            </div>
+                          </div>
+                          <span
+                            className={[
+                              "shrink-0 border px-2 py-1 text-[9px] font-semibold uppercase tracking-[0.16em]",
+                              post.published
+                                ? "border-[#294b36] text-[#92d0a6]"
+                                : "border-[#4d3c1a] text-[#d4b16a]",
+                            ].join(" ")}
+                          >
+                            {postStatusLabel(post.published)}
+                          </span>
+                        </div>
+                      </button>
+                    ))
+                  )}
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <h2 className="text-2xl font-semibold tracking-tight text-white">Projects</h2>
+                    <p className="mt-1 text-sm text-[#8fa1b3]">
+                      {projects.length} total · {publishedProjectCount} published ·{" "}
+                      {draftProjectCount} drafts
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={openNewProject}
+                    className="shrink-0 border border-[#3a4758] bg-[#f5f7fa] px-5 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-[#0a0d12] transition hover:bg-[#dfe6ee]"
+                  >
+                    + New Project
                   </button>
-                ))
-              )}
-            </div>
+                </div>
+
+                <div className="mb-5">
+                  <input
+                    type="text"
+                    value={projectSearchQuery}
+                    onChange={(e) => setProjectSearchQuery(e.target.value)}
+                    placeholder="Search projects..."
+                    className="w-full border border-[#202632] bg-[#0b0f14] px-4 py-3 text-sm text-white outline-none transition placeholder:text-[#506172] focus:border-[#7dd3fc]"
+                  />
+                </div>
+
+                {statusMessage && (
+                  <div className="mb-5 border border-[#202632] bg-[#0b0f14] px-4 py-3">
+                    <p className="text-sm text-[#9fb0bf]">{statusMessage}</p>
+                  </div>
+                )}
+
+                <div className="space-y-3 mb-4">
+                  {filteredProjects.length === 0 ? (
+                    <div className="border border-[#202632] bg-[#0b0f14] p-8 text-center">
+                      <p className="text-sm text-[#8fa1b3]">
+                        {projects.length === 0
+                          ? "No projects yet. Create your first project."
+                          : "No projects match your search."}
+                      </p>
+                    </div>
+                  ) : (
+                    filteredProjects.map((proj) => (
+                      <button
+                        key={proj.slug}
+                        type="button"
+                        onClick={() => openExistingProject(proj.slug)}
+                        className="group block w-full border border-[#202632] bg-[#0b0f14] p-5 text-left transition hover:border-[#3a4758] hover:bg-[#0f141b]"
+                      >
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex-1 min-w-0">
+                            <h3 className="text-base font-semibold text-[#f5f7fa] group-hover:text-white truncate">
+                              {proj.title}
+                            </h3>
+                            <p className="mt-2 text-sm text-[#8fa1b3] line-clamp-2 leading-relaxed">
+                              {proj.excerpt}
+                            </p>
+                            <div className="mt-3 flex flex-wrap items-center gap-3 text-[11px] text-[#607080]">
+                              <span>{formatTimestamp(proj.createdAt)}</span>
+                              <span>·</span>
+                              <span className="text-[#7dd3fc]">/projects/{proj.slug}</span>
+                              {proj.isOpenSource && (
+                                <>
+                                  <span>·</span>
+                                  <span className="text-[#92d0a6]">Open Source</span>
+                                </>
+                              )}
+                              {proj.pinned && (
+                                <>
+                                  <span>·</span>
+                                  <span className="text-[#7dd3fc]">Featured</span>
+                                </>
+                              )}
+                            </div>
+                          </div>
+                          <div className="flex gap-1 shrink-0">
+                            {proj.pinned && (
+                              <span className="border border-[#3a4758] px-2 py-1 text-[9px] font-semibold uppercase tracking-[0.16em] text-[#7dd3fc]">
+                                Featured
+                              </span>
+                            )}
+                            <span
+                              className={[
+                                "border px-2 py-1 text-[9px] font-semibold uppercase tracking-[0.16em]",
+                                proj.published
+                                  ? "border-[#294b36] text-[#92d0a6]"
+                                  : "border-[#4d3c1a] text-[#d4b16a]",
+                              ].join(" ")}
+                            >
+                              {postStatusLabel(proj.published)}
+                            </span>
+                          </div>
+                        </div>
+                      </button>
+                    ))
+                  )}
+                </div>
+              </>
+            )}
+
+            <hr className="pb-4" />
 
             {/* ── Assets Manager ── */}
             <AssetsManager initialAssets={initialAssets} />
@@ -708,13 +987,13 @@ export default function AdminDashboard({
                 <div className="bg-[#0b0f14] p-4 text-center">
                   <p className="text-3xl font-bold text-white">{publishedCount}</p>
                   <p className="mt-1 text-[10px] uppercase tracking-[0.16em] text-[#607080]">
-                    Published
+                    Posts
                   </p>
                 </div>
                 <div className="bg-[#0b0f14] p-4 text-center">
-                  <p className="text-3xl font-bold text-white">{draftCount}</p>
+                  <p className="text-3xl font-bold text-white">{publishedProjectCount}</p>
                   <p className="mt-1 text-[10px] uppercase tracking-[0.16em] text-[#607080]">
-                    Drafts
+                    Projects
                   </p>
                 </div>
               </div>
@@ -788,6 +1067,19 @@ export default function AdminDashboard({
           onDeleteAction={handleDeletePost}
           isSaving={isSaving}
           isDeleting={isDeleting}
+        />
+      )}
+
+      {currentProject && (
+        <ProjectEditorModal
+          key={currentProject.originalSlug || "new-project"}
+          isOpen={isProjectEditorOpen}
+          project={currentProject}
+          onCloseAction={closeProjectEditor}
+          onSaveAction={handleSaveProject}
+          onDeleteAction={handleDeleteProject}
+          isSaving={isSavingProject}
+          isDeleting={isDeletingProject}
         />
       )}
     </div>
