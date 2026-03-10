@@ -6,11 +6,10 @@ import {
   createAdminSession,
   deleteAdminSession,
   getAdminByUsername,
-  isSetupComplete,
   verifyPassword,
 } from "@/lib/db";
 
-const SESSION_COOKIE_NAME = "numbered-dev-admin-session";
+const SESSION_COOKIE_NAME = process.env.SESSION_COOKIE_NAME?.trim() || "numbered-dev-admin-session";
 const SESSION_DURATION_DAYS = 7;
 
 function unauthorized(message = "Invalid username or password.") {
@@ -28,25 +27,28 @@ function isFormRequest(contentType: string | null) {
   );
 }
 
+function getOrigin(request: Request) {
+  const forwardedProto = request.headers.get("x-forwarded-proto");
+  const forwardedHost = request.headers.get("x-forwarded-host");
+  const host = forwardedHost || request.headers.get("host");
+
+  if (forwardedProto && host) {
+    return `${forwardedProto}://${host}`;
+  }
+
+  return new URL(request.url).origin;
+}
+
+function getAdminRedirectUrl(request: Request) {
+  return new URL("/admin", getOrigin(request));
+}
+
 export async function POST(request: Request) {
   try {
-    clearExpiredAdminSessions();
+    await clearExpiredAdminSessions();
 
     const contentType = request.headers.get("content-type");
     const expectsHtml = isFormRequest(contentType);
-
-    if (!(await isSetupComplete())) {
-      if (expectsHtml) {
-        return NextResponse.redirect(new URL("/admin?setup=required", request.url), {
-          status: 303,
-        });
-      }
-
-      return NextResponse.json(
-        { error: "Initial setup is required before signing in.", setupRequired: true },
-        { status: 403 },
-      );
-    }
 
     let username = "";
     let password = "";
@@ -70,7 +72,7 @@ export async function POST(request: Request) {
 
     if (!username || !password) {
       if (expectsHtml) {
-        return NextResponse.redirect(new URL("/admin", request.url), {
+        return NextResponse.redirect(getAdminRedirectUrl(request), {
           status: 303,
         });
       }
@@ -82,7 +84,7 @@ export async function POST(request: Request) {
 
     if (!admin) {
       if (expectsHtml) {
-        return NextResponse.redirect(new URL("/admin", request.url), {
+        return NextResponse.redirect(getAdminRedirectUrl(request), {
           status: 303,
         });
       }
@@ -94,7 +96,7 @@ export async function POST(request: Request) {
 
     if (!passwordMatches) {
       if (expectsHtml) {
-        return NextResponse.redirect(new URL("/admin", request.url), {
+        return NextResponse.redirect(getAdminRedirectUrl(request), {
           status: 303,
         });
       }
@@ -114,7 +116,7 @@ export async function POST(request: Request) {
     });
 
     if (expectsHtml) {
-      return NextResponse.redirect(new URL("/admin", request.url), {
+      return NextResponse.redirect(getAdminRedirectUrl(request), {
         status: 303,
       });
     }

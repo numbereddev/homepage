@@ -1,4 +1,5 @@
 import { cookies } from "next/headers";
+import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 
 import {
@@ -85,6 +86,7 @@ export async function POST(request: Request) {
 
     const newPasswordHash = await hashPassword(newPassword);
     await updateAdminPassword(admin.id, newPasswordHash);
+	revalidatePath("/admin");
 
     return NextResponse.json({
       success: true,

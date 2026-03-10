@@ -42,7 +42,6 @@ That means:
 - Hashed admin password storage
 - Draft and published post support
 - Flat, modern developer-focused UI
-- First-run setup flow for creating the initial admin account
 
 ## Project Structure
 
@@ -64,6 +63,34 @@ Install dependencies:
 ```bash
 npm install
 ```
+
+### Optional: run MySQL locally with Docker
+
+Use the included Compose file instead of a custom MySQL Dockerfile:
+
+```bash
+docker compose up -d
+docker compose logs -f mysql
+```
+
+If you previously started the container with an older broken config, remove the old container and volume first:
+
+```bash
+docker compose down -v
+docker compose up -d
+```
+
+The local MySQL container uses these defaults:
+
+```bash
+MYSQL_HOST=127.0.0.1
+MYSQL_PORT=3306
+MYSQL_DATABASE=numbered_dev
+MYSQL_USER=numbered_dev_user
+MYSQL_PASSWORD=change-this
+```
+
+The included Compose setup is based on `mysql:8.4` and does not require the deprecated `default-authentication-plugin=mysql_native_password` option.
 
 Run the development server:
 
@@ -89,8 +116,9 @@ MYSQL_PORT=3306
 MYSQL_DATABASE=numbered_dev
 MYSQL_USER=numbered_dev_user
 MYSQL_PASSWORD=change-this
-MYSQL_SSL=false
 SESSION_COOKIE_NAME=numbered-dev-admin-session
+ADMIN_USERNAME=admin
+ADMIN_PASSWORD=change-this-immediately
 ```
 
 ### Optional app URL settings
@@ -102,21 +130,10 @@ NEXT_PUBLIC_SITE_URL=http://localhost:3000
 ### Notes
 
 - The app uses MySQL for runtime persistence.
-- On first run, if no admin account exists yet, `/admin` shows an initial setup screen instead of the login form.
-- The first setup creates the initial admin user in the database.
-- After setup is complete, the normal admin login flow is used.
+- The database schema is created automatically when the app starts and connects successfully.
+- The initial admin user is created automatically from `ADMIN_USERNAME` and `ADMIN_PASSWORD` if that user does not already exist.
+- If the configured admin already exists, the app leaves it unchanged.
 - You should use a strong MySQL password and a strong admin password in production.
-
-## Initial Setup Flow
-
-When the site is connected to MySQL but has not been configured yet:
-
-1. Open `/admin`
-2. You will see the first-run setup screen
-3. Create the initial admin username and password
-4. Sign in and use the dashboard normally
-
-This is useful for deployments on hosting panels like Plesk where you provision the MySQL database first and complete app setup in the browser.
 
 ## Admin Access
 
@@ -126,11 +143,16 @@ Open:
 http://localhost:3000/admin
 ```
 
-Behavior:
+Sign in with the credentials from your environment variables.
 
-- If the app is not set up yet, you will see the setup screen
-- If setup is complete, you will see the admin login screen
-- After login, you can manage posts, projects, links, and assets
+The admin area lets you:
+
+- create posts
+- edit posts
+- delete posts
+- manage projects
+- manage links
+- upload and manage assets
 
 ## How Posts Work
 
@@ -186,6 +208,15 @@ Current usage includes:
 
 The schema is created automatically by the application at runtime when the database connection is available.
 
+If you use the local Docker MySQL setup above, make sure the container is running before starting the app. If MySQL fails to start because of an old data directory or an invalid server option from an earlier config, run:
+
+```bash
+docker compose down -v
+docker compose up -d
+```
+
+This removes the old local MySQL volume and recreates the database cleanly.
+
 ## Authentication
 
 Admin authentication uses:
@@ -214,8 +245,8 @@ A typical Plesk deployment looks like this:
 3. Add the required environment variables in Plesk
 4. Install dependencies
 5. Build the app
-6. Start/restart the app
-7. Open `/admin` and complete the initial setup if no admin exists yet
+6. Start or restart the app
+7. Open `/admin` and sign in with the admin credentials from the environment
 
 ### Important deployment notes
 

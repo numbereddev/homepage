@@ -1,6 +1,7 @@
 import Link from "next/link";
+import { cookies } from "next/headers";
 import { getAllPosts, getPinnedProjects } from "@/lib/content";
-import { getAllLinks } from "@/lib/db";
+import { getAllLinks, getAdminSession } from "@/lib/db";
 import { formatTimestamp } from "@/lib/utils";
 import { t } from "@/lib/tokens";
 import { AnimatedDiv, AnimatedSection, PageTransition, StaggerIn } from "@/components/animations";
@@ -38,10 +39,16 @@ const WORK_ITEMS = [
   },
 ];
 
+const SESSION_COOKIE_NAME = process.env.SESSION_COOKIE_NAME?.trim() || "numbered-dev-admin-session";
+
 export default async function HomePage() {
   const latestPosts = getAllPosts(false).slice(0, 4);
   const pinnedProjects = getPinnedProjects().slice(0, 3);
   const links = await getAllLinks();
+
+  const cookieStore = await cookies();
+  const sessionToken = cookieStore.get(SESSION_COOKIE_NAME)?.value;
+  const adminSession = sessionToken ? await getAdminSession(sessionToken) : null;
 
   const header = (
     <PageTransition>
@@ -82,6 +89,11 @@ export default async function HomePage() {
             <a href="#work" className={t.btn.ghost}>
               View Focus
             </a>
+            {adminSession ? (
+              <Link href="/admin" className={t.btn.ghost}>
+                Go to Admin
+              </Link>
+            ) : null}
           </AnimatedDiv>
         </div>
 
@@ -333,7 +345,6 @@ export default async function HomePage() {
       <section className={`${t.pad.section} bg-white/1`}>
         <SectionHeading eyebrow="Linktree" title="Where you can find me" />
 
-        {/* Links / linktree */}
         {links.length > 0 && (
           <div className={`${t.color.base}`}>
             <div className="grid gap-5 lg:grid-cols-3 md:grid-cols-2">

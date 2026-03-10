@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 
 import {
@@ -70,6 +71,7 @@ export async function POST(request: Request) {
 
   try {
     const link = await createLink(label, url);
+	revalidatePath("/");
     return NextResponse.json({ link }, { status: 201 });
   } catch (err) {
     console.error("[links] POST failed", err);
@@ -139,6 +141,7 @@ export async function PATCH(request: Request) {
 
   try {
     const link = await updateLink(id, label, url);
+	revalidatePath("/");
 
     if (!link) {
       return NextResponse.json({ error: "Link not found." }, { status: 404 });
