@@ -98,7 +98,7 @@ function AdminLogin({ errorMessage, debugMessage }: AdminLoginProps) {
                   <div className="mb-5 border border-[#5a2a2a] bg-[#1a0f10] px-4 py-3">
                     <p className="text-sm font-medium text-[#ffb4b4]">{errorMessage}</p>
                     {debugMessage ? (
-                      <p className="mt-2 break-words font-mono text-xs leading-6 text-[#d7a3a3]">
+                      <p className="mt-2 wrap-break-word font-mono text-xs leading-6 text-[#d7a3a3]">
                         {debugMessage}
                       </p>
                     ) : null}

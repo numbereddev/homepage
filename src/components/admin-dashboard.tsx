@@ -12,6 +12,7 @@ import ProjectEditorModal, {
   projectToEditorData,
 } from "./editor/ProjectEditorModal";
 import AssetsManager, { type AssetData } from "./AssetsManager";
+import Link from "next/link";
 
 type LinkItem = {
   id: number;
@@ -584,6 +585,11 @@ export default function AdminDashboard({
               >
                 {isLoggingOut ? "Signing out..." : "Sign Out"}
               </button>
+              <Link href="/">
+                <button className="border border-[#3a4758] px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-[#c7d0db] transition hover:bg-[#151c25] disabled:opacity-50">
+                  Home
+                </button>
+              </Link>
             </div>
           </div>
         </div>
