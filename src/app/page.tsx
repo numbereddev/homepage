@@ -346,7 +346,7 @@ export default async function HomePage() {
         <SectionHeading eyebrow="Linktree" title="Where you can find me" />
 
         {links.length > 0 && (
-          <div className={`${t.color.base}`}>
+          <div>
             <div className="grid gap-5 lg:grid-cols-3 md:grid-cols-2">
               {links.map((link) => (
                 <a
