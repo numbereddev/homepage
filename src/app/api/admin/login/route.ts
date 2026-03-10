@@ -25,10 +25,14 @@ function isFormRequest(contentType: string | null) {
   );
 }
 
+function getFirstForwardedValue(value: string | null) {
+  return value?.split(",")[0]?.trim() || null;
+}
+
 function getOrigin(request: Request) {
-  const forwardedProto = request.headers.get("x-forwarded-proto");
-  const forwardedHost = request.headers.get("x-forwarded-host");
-  const host = forwardedHost || request.headers.get("host");
+  const forwardedProto = getFirstForwardedValue(request.headers.get("x-forwarded-proto"));
+  const forwardedHost = getFirstForwardedValue(request.headers.get("x-forwarded-host"));
+  const host = forwardedHost || getFirstForwardedValue(request.headers.get("host"));
 
   if (forwardedProto && host) {
     return `${forwardedProto}://${host}`;
