@@ -1,10 +1,17 @@
 import Link from "next/link";
-import { getAllPosts } from "@/lib/content";
+import { getAllPosts, getPinnedProjects } from "@/lib/content";
 import { getAllLinks } from "@/lib/db";
 import { formatTimestamp } from "@/lib/utils";
 import { t } from "@/lib/tokens";
 import { AnimatedDiv, AnimatedSection, PageTransition, StaggerIn } from "@/components/animations";
-import { PageShell, SiteNav, SectionHeading, PostCard, PostRow, EmptyState } from "@/components/ui";
+import {
+  PageShell,
+  SiteNav,
+  SectionHeading,
+  PostCard,
+  ProjectRow,
+  EmptyState,
+} from "@/components/ui";
 
 const WORK_ITEMS = [
   {
@@ -33,6 +40,7 @@ const WORK_ITEMS = [
 
 export default function HomePage() {
   const latestPosts = getAllPosts(false).slice(0, 4);
+  const pinnedProjects = getPinnedProjects().slice(0, 3);
   const links = getAllLinks();
 
   const header = (
@@ -68,6 +76,9 @@ export default function HomePage() {
             <Link href="/blog" className={t.btn.primary}>
               Read Posts
             </Link>
+            <Link href="/projects" className={t.btn.ghost}>
+              My Projects
+            </Link>
             <a href="#work" className={t.btn.ghost}>
               View Focus
             </a>
@@ -76,26 +87,26 @@ export default function HomePage() {
 
         {/* ── Right: latest posts + linktree + style note ── */}
         <div className="grid gap-px bg-neutral-800">
-          {/* Latest posts */}
+          {/* Featured Projects */}
           <AnimatedDiv className={`${t.color.base} p-6`} delay={160}>
-            <p className={`mb-4 ${t.text.meta} ${t.color.muted}`}>Latest</p>
+            <p className={`mb-4 ${t.text.meta} ${t.color.muted}`}>Featured Projects</p>
 
-            {latestPosts.length > 0 ? (
+            {pinnedProjects.length > 0 ? (
               <StaggerIn className="space-y-2" initialDelay={220} stagger={90} distance={18}>
-                {latestPosts.slice(0, 2).map((post) => (
-                  <PostRow
-                    key={post.slug}
-                    slug={post.slug}
-                    title={post.title}
-                    excerpt={post.excerpt}
-                    date={formatTimestamp(post.createdAt)}
-                    readingTime={post.readingTime}
+                {pinnedProjects.slice(0, 2).map((project) => (
+                  <ProjectRow
+                    key={project.slug}
+                    slug={project.slug}
+                    title={project.title}
+                    excerpt={project.excerpt}
+                    date={formatTimestamp(project.createdAt)}
+                    isOpenSource={project.isOpenSource}
                   />
                 ))}
               </StaggerIn>
             ) : (
               <p className={`border ${t.color.border} p-4 ${t.text.body} ${t.color.muted}`}>
-                No published posts yet.
+                No pinned projects yet.
               </p>
             )}
           </AnimatedDiv>

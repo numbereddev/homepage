@@ -30,7 +30,10 @@ export type NavItem = {
 // SiteNav
 // ---------------------------------------------------------------------------
 
-const DEFAULT_NAV: NavItem[] = [{ href: "/blog", label: "Blog" }];
+const DEFAULT_NAV: NavItem[] = [
+  { href: "/blog", label: "Blog" },
+  { href: "/projects", label: "Projects" },
+];
 
 /**
  * Horizontal nav bar rendered in every page header.
@@ -393,5 +396,169 @@ export function EmptyState({
       <p className={`mt-3 max-w-2xl ${t.text.body} ${t.color.body}`}>{body}</p>
       {action ? <div className="mt-5">{action}</div> : null}
     </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// ProjectRow  (compact clickable project item — sidebar lists)
+// ---------------------------------------------------------------------------
+
+export function ProjectRow({
+  slug,
+  title,
+  excerpt,
+  date,
+  isOpenSource,
+  variant = "card",
+}: {
+  slug: string;
+  title: string;
+  excerpt: string;
+  date: string;
+  isOpenSource?: boolean;
+  variant?: "card" | "flush";
+}) {
+  const base =
+    variant === "flush"
+      ? `group block p-4 transition-colors hover:bg-neutral-900`
+      : `group block border ${t.color.border} p-4 transition-colors ${t.color.hoverBorderAccentDim}`;
+
+  return (
+    <Link href={`/projects/${slug}`} className={base} {...PAGE_TRANSITION_PROPS}>
+      <p className={`${t.text.meta} ${t.color.muted}`}>
+        {date}
+        {isOpenSource ? " · Open Source" : ""}
+      </p>
+      <h2
+        className={`mt-2 text-base font-semibold tracking-[-0.03em] text-white transition-colors ${t.color.groupHoverAccent}`}
+      >
+        {title}
+      </h2>
+      <p className={`mt-1 line-clamp-2 ${t.text.body} ${t.color.body}`}>{excerpt}</p>
+    </Link>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// ProjectCard  (full card — projects grid)
+// ---------------------------------------------------------------------------
+
+export type ProjectCardProps = {
+  slug: string;
+  title: string;
+  excerpt: string;
+  date: string;
+  tags?: string[];
+  readingTime?: number;
+  cover?: string;
+  isOpenSource?: boolean;
+  sourceUrl?: string;
+  pinned?: boolean;
+};
+
+export function ProjectCard({
+  slug,
+  title,
+  excerpt,
+  date,
+  tags = [],
+  readingTime,
+  cover,
+  isOpenSource,
+  sourceUrl,
+  pinned,
+}: ProjectCardProps) {
+  return (
+    <Link
+      href={`/projects/${slug}`}
+      className={`group relative flex h-full flex-col justify-between overflow-hidden border ${t.color.border} ${t.color.base} transition-colors ${t.color.hoverBorderAccentDim}`}
+      {...PAGE_TRANSITION_PROPS}
+    >
+      {cover ? (
+        <>
+          <div className="absolute inset-0">
+            <Image
+              src={cover}
+              alt={title}
+              fill
+              unoptimized
+              className="object-cover grayscale transition duration-500 group-hover:scale-[1.02] group-hover:grayscale-0"
+            />
+          </div>
+          <div className="absolute inset-0 bg-black/88 transition duration-500 group-hover:bg-black/72" />
+          <div className="absolute inset-0 backdrop-blur-md transition duration-500 group-hover:backdrop-blur-sm" />
+          <div className="absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-black/45 to-transparent" />
+          <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-black/70 to-transparent" />
+        </>
+      ) : null}
+
+      <div className={`relative space-y-4 ${t.pad.card}`}>
+        <div
+          className={`flex flex-wrap items-center gap-x-3 gap-y-1 ${t.text.meta} ${t.color.muted}`}
+        >
+          <span>{date}</span>
+          {readingTime != null && (
+            <>
+              <span
+                className="inline-block h-px w-6 translate-y-[-0.1em] bg-neutral-700"
+                aria-hidden
+              />
+              <span>{readingTime} min read</span>
+            </>
+          )}
+          {isOpenSource && (
+            <>
+              <span
+                className="inline-block h-px w-6 translate-y-[-0.1em] bg-neutral-700"
+                aria-hidden
+              />
+              <span className="text-emerald-400">Open Source</span>
+            </>
+          )}
+          {pinned && (
+            <>
+              <span
+                className="inline-block h-px w-6 translate-y-[-0.1em] bg-neutral-700"
+                aria-hidden
+              />
+              <span className="text-sky-400">Featured</span>
+            </>
+          )}
+        </div>
+
+        <div className="max-w-2xl space-y-2">
+          <h3
+            className={`${t.text.cardTitle} text-white drop-shadow-[0_2px_10px_rgba(0,0,0,0.85)] transition-colors ${t.color.groupHoverAccent}`}
+          >
+            {title}
+          </h3>
+          <p className={`${t.text.body} text-neutral-200 drop-shadow-[0_2px_10px_rgba(0,0,0,0.8)]`}>
+            {excerpt}
+          </p>
+        </div>
+
+        <div className="drop-shadow-[0_2px_8px_rgba(0,0,0,0.75)]">
+          <TagList tags={tags} />
+        </div>
+      </div>
+
+      <div className={`relative border-t ${t.color.border} bg-black/25 px-5 py-3 sm:px-6`}>
+        <div className="flex items-center justify-between">
+          <span
+            aria-hidden="true"
+            className={`inline-flex items-center gap-2 ${t.text.cta} ${t.color.accent} drop-shadow-[0_2px_10px_rgba(0,0,0,0.85)]`}
+          >
+            View project <span>→</span>
+          </span>
+          {isOpenSource && sourceUrl && (
+            <span
+              className={`${t.text.micro} text-emerald-500 drop-shadow-[0_2px_10px_rgba(0,0,0,0.85)]`}
+            >
+              Source available
+            </span>
+          )}
+        </div>
+      </div>
+    </Link>
   );
 }

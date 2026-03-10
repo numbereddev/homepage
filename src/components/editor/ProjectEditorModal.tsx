@@ -6,24 +6,27 @@ import ComponentDrawer from "./ComponentDrawer";
 import AssetPicker, { type AssetData, type InsertType } from "./AssetPicker";
 import PostPreview from "@/components/PostPreview";
 
-export type PostData = {
+export type ProjectData = {
   originalSlug: string;
   slug: string;
   title: string;
   excerpt: string;
-  createdAt: number; // Unix timestamp in milliseconds
+  createdAt: number;
   published: boolean;
+  pinned: boolean;
   tags: string;
   cover: string;
-  readingTime: number;
+  gallery: string[];
+  isOpenSource: boolean;
+  sourceUrl: string;
   content: string;
 };
 
-type PostEditorModalProps = {
+type ProjectEditorModalProps = {
   isOpen: boolean;
-  post: PostData;
+  project: ProjectData;
   onCloseAction: () => void;
-  onSaveAction: (post: PostData) => Promise<void>;
+  onSaveAction: (project: ProjectData) => Promise<void>;
   onDeleteAction: (slug: string) => Promise<void>;
   isSaving: boolean;
   isDeleting: boolean;
@@ -59,58 +62,57 @@ function formatTimestampForDisplay(timestamp: number) {
 
 function formatTimestampForInput(timestamp: number) {
   const date = new Date(timestamp);
-  // Format as datetime-local input value: YYYY-MM-DDTHH:mm
+
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, "0");
   const day = String(date.getDate()).padStart(2, "0");
   const hours = String(date.getHours()).padStart(2, "0");
   const minutes = String(date.getMinutes()).padStart(2, "0");
+
   return `${year}-${month}-${day}T${hours}:${minutes}`;
 }
 
-function parseInputToTimestamp(value: string): number {
+function parseInputToTimestamp(value: string) {
   const parsed = new Date(value).getTime();
   return Number.isNaN(parsed) ? Date.now() : parsed;
 }
 
-export default function PostEditorModal({
+export default function ProjectEditorModal({
   isOpen,
-  post,
+  project,
   onCloseAction,
   onSaveAction,
   onDeleteAction,
   isSaving,
   isDeleting,
-}: PostEditorModalProps) {
-  const normalizePostContent = useCallback((value: string) => {
+}: ProjectEditorModalProps) {
+  const normalizeProjectContent = useCallback((value: string) => {
     return blocksToContent(contentToBlocks(value));
   }, []);
 
   const createEditorState = useCallback(
-    (postValue: PostData) => {
-      const normalizedContent = normalizePostContent(postValue.content);
-      const nextPost = { ...postValue, content: normalizedContent };
+    (proj: ProjectData) => {
+      const normalizedContent = normalizeProjectContent(proj.content);
+      const nextProj = { ...proj, content: normalizedContent };
       return {
-        post: nextPost,
+        project: nextProj,
         blocks: contentToBlocks(normalizedContent),
-        isSlugLocked: Boolean(postValue.originalSlug),
+        isSlugLocked: Boolean(proj.originalSlug),
       };
     },
-    [normalizePostContent],
+    [normalizeProjectContent],
   );
 
   type EditorHistoryState = {
-    post: PostData;
+    project: ProjectData;
     blocks: EditorBlock[];
     isSlugLocked: boolean;
   };
 
-  const initialState = useMemo(() => createEditorState(post), [createEditorState, post]);
+  const initialState = useMemo(() => createEditorState(project), [createEditorState, project]);
 
-  // Note: This component should be keyed by post.originalSlug in the parent
-  // to ensure clean re-mounting when switching between posts
   const [blocks, setBlocks] = useState<EditorBlock[]>(initialState.blocks);
-  const [localPost, setLocalPost] = useState<PostData>(initialState.post);
+  const [localProject, setLocalProject] = useState<ProjectData>(initialState.project);
   const [isSlugLocked, setIsSlugLocked] = useState(initialState.isSlugLocked);
   const [activeTab, setActiveTab] = useState<"editor" | "preview">("editor");
   const [showComponentDrawer, setShowComponentDrawer] = useState(false);
@@ -119,27 +121,26 @@ export default function PostEditorModal({
   const [showConfirmClose, setShowConfirmClose] = useState(false);
   const [historyPast, setHistoryPast] = useState<EditorHistoryState[]>([]);
   const [historyFuture, setHistoryFuture] = useState<EditorHistoryState[]>([]);
+  const [galleryInput, setGalleryInput] = useState("");
 
-  // Snapshot of the last saved state — used to derive isDirty.
-  // Updated after each successful save so the dirty flag resets.
-  // Both localPost and this snapshot are initialized with the same normalized
-  // content, so isDirty starts as false until the user actually edits something.
-  const [savedSnapshot, setSavedSnapshot] = useState<{ post: PostData; content: string }>(() => ({
-    post: initialState.post,
-    content: initialState.post.content,
-  }));
+  const [savedSnapshot, setSavedSnapshot] = useState<{ project: ProjectData; content: string }>(
+    () => ({
+      project: initialState.project,
+      content: initialState.project.content,
+    }),
+  );
 
   const currentEditorState = useCallback(
     (): EditorHistoryState => ({
-      post: localPost,
+      project: localProject,
       blocks,
       isSlugLocked,
     }),
-    [localPost, blocks, isSlugLocked],
+    [localProject, blocks, isSlugLocked],
   );
 
   const applyEditorState = useCallback((state: EditorHistoryState) => {
-    setLocalPost(state.post);
+    setLocalProject(state.project);
     setBlocks(state.blocks);
     setIsSlugLocked(state.isSlugLocked);
   }, []);
@@ -150,7 +151,7 @@ export default function PostEditorModal({
       const nextState = updater(currentState);
 
       if (
-        nextState.post === currentState.post &&
+        nextState.project === currentState.project &&
         nextState.blocks === currentState.blocks &&
         nextState.isSlugLocked === currentState.isSlugLocked
       ) {
@@ -169,10 +170,8 @@ export default function PostEditorModal({
 
   const handleUndo = useCallback(() => {
     if (!canUndo) return;
-
     const currentState = currentEditorState();
     const previousState = historyPast[historyPast.length - 1];
-
     setHistoryPast((prev) => prev.slice(0, -1));
     setHistoryFuture((prev) => [currentState, ...prev]);
     applyEditorState(previousState);
@@ -180,10 +179,8 @@ export default function PostEditorModal({
 
   const handleRedo = useCallback(() => {
     if (!canRedo) return;
-
     const currentState = currentEditorState();
     const [nextState, ...remainingFuture] = historyFuture;
-
     setHistoryFuture(remainingFuture);
     setHistoryPast((prev) => [...prev, currentState]);
     applyEditorState(nextState);
@@ -192,17 +189,20 @@ export default function PostEditorModal({
   const isDirty = useMemo(() => {
     const s = savedSnapshot;
     return (
-      localPost.title !== s.post.title ||
-      localPost.excerpt !== s.post.excerpt ||
-      localPost.slug !== s.post.slug ||
-      localPost.tags !== s.post.tags ||
-      localPost.published !== s.post.published ||
-      localPost.cover !== s.post.cover ||
-      localPost.createdAt !== s.post.createdAt ||
-      localPost.readingTime !== s.post.readingTime ||
-      localPost.content !== s.content
+      localProject.title !== s.project.title ||
+      localProject.excerpt !== s.project.excerpt ||
+      localProject.slug !== s.project.slug ||
+      localProject.tags !== s.project.tags ||
+      localProject.published !== s.project.published ||
+      localProject.pinned !== s.project.pinned ||
+      localProject.cover !== s.project.cover ||
+      localProject.createdAt !== s.project.createdAt ||
+      localProject.isOpenSource !== s.project.isOpenSource ||
+      localProject.sourceUrl !== s.project.sourceUrl ||
+      JSON.stringify(localProject.gallery) !== JSON.stringify(s.project.gallery) ||
+      localProject.content !== s.content
     );
-  }, [localPost, savedSnapshot]);
+  }, [localProject, savedSnapshot]);
 
   const requestClose = useCallback(() => {
     if (isDirty) {
@@ -214,9 +214,7 @@ export default function PostEditorModal({
     }
   }, [isDirty, onCloseAction]);
 
-  const handlePreviewUpdate = useCallback(() => {
-    // Preview is now handled by PostPreview component using the content directly
-  }, []);
+  const handlePreviewUpdate = useCallback(() => {}, []);
 
   const handleBlocksChange = useCallback(
     (newBlocks: EditorBlock[]) => {
@@ -225,7 +223,7 @@ export default function PostEditorModal({
         return {
           ...state,
           blocks: newBlocks,
-          post: { ...state.post, content },
+          project: { ...state.project, content },
         };
       });
     },
@@ -233,10 +231,10 @@ export default function PostEditorModal({
   );
 
   const updateField = useCallback(
-    <K extends keyof PostData>(key: K, value: PostData[K]) => {
+    <K extends keyof ProjectData>(key: K, value: ProjectData[K]) => {
       commitEditorState((state) => ({
         ...state,
-        post: { ...state.post, [key]: value },
+        project: { ...state.project, [key]: value },
       }));
     },
     [commitEditorState],
@@ -245,15 +243,13 @@ export default function PostEditorModal({
   const updateTitle = useCallback(
     (value: string) => {
       commitEditorState((state) => {
-        const updates: Partial<PostData> = { title: value };
-
+        const updates: Partial<ProjectData> = { title: value };
         if (!state.isSlugLocked) {
           updates.slug = normalizeSlug(value);
         }
-
         return {
           ...state,
-          post: { ...state.post, ...updates },
+          project: { ...state.project, ...updates },
         };
       });
     },
@@ -265,8 +261,31 @@ export default function PostEditorModal({
       const normalized = normalizeSlug(value, { preserveEdgeDashes: true });
       commitEditorState((state) => ({
         ...state,
-        post: { ...state.post, slug: normalized },
+        project: { ...state.project, slug: normalized },
         isSlugLocked: true,
+      }));
+    },
+    [commitEditorState],
+  );
+
+  const addGalleryImage = useCallback(() => {
+    const url = galleryInput.trim();
+    if (!url) return;
+    commitEditorState((state) => ({
+      ...state,
+      project: { ...state.project, gallery: [...state.project.gallery, url] },
+    }));
+    setGalleryInput("");
+  }, [galleryInput, commitEditorState]);
+
+  const removeGalleryImage = useCallback(
+    (index: number) => {
+      commitEditorState((state) => ({
+        ...state,
+        project: {
+          ...state.project,
+          gallery: state.project.gallery.filter((_, i) => i !== index),
+        },
       }));
     },
     [commitEditorState],
@@ -276,16 +295,14 @@ export default function PostEditorModal({
     setShowConfirmClose(false);
     setError("");
 
-    if (!localPost.title.trim()) {
+    if (!localProject.title.trim()) {
       setError("Title is required.");
       return;
     }
-
-    if (!localPost.excerpt.trim()) {
+    if (!localProject.excerpt.trim()) {
       setError("Excerpt is required.");
       return;
     }
-
     const content = blocksToContent(blocks);
     if (!content.trim()) {
       setError("Content is required.");
@@ -293,36 +310,39 @@ export default function PostEditorModal({
     }
 
     try {
-      await onSaveAction({ ...localPost, slug: normalizeSlug(localPost.slug), content });
+      await onSaveAction({
+        ...localProject,
+        slug: normalizeSlug(localProject.slug),
+        content,
+      });
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to save post.");
+      setError(err instanceof Error ? err.message : "Failed to save project.");
       return;
     }
-    // After a successful save, reset dirty tracking
     const savedContent = blocksToContent(blocks);
-    setSavedSnapshot({ post: { ...localPost, content: savedContent }, content: savedContent });
-  }, [localPost, blocks, onSaveAction]);
+    setSavedSnapshot({
+      project: { ...localProject, content: savedContent },
+      content: savedContent,
+    });
+  }, [localProject, blocks, onSaveAction]);
 
   const handleDelete = useCallback(async () => {
-    if (!localPost.originalSlug) {
+    if (!localProject.originalSlug) {
       setHistoryPast([]);
       setHistoryFuture([]);
       onCloseAction();
       return;
     }
-
     const confirmed = window.confirm(
-      `Delete "${localPost.title || localPost.originalSlug}"? This cannot be undone.`,
+      `Delete "${localProject.title || localProject.originalSlug}"? This cannot be undone.`,
     );
-
     if (!confirmed) return;
-
     try {
-      await onDeleteAction(localPost.originalSlug);
+      await onDeleteAction(localProject.originalSlug);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to delete post.");
+      setError(err instanceof Error ? err.message : "Failed to delete project.");
     }
-  }, [localPost, onDeleteAction, onCloseAction]);
+  }, [localProject, onDeleteAction, onCloseAction]);
 
   const insertComponent = useCallback(
     (snippet: string) => {
@@ -336,10 +356,7 @@ export default function PostEditorModal({
         return {
           ...state,
           blocks: newBlocks,
-          post: {
-            ...state.post,
-            content: blocksToContent(newBlocks),
-          },
+          project: { ...state.project, content: blocksToContent(newBlocks) },
         };
       });
       setShowComponentDrawer(false);
@@ -350,7 +367,6 @@ export default function PostEditorModal({
   const handleAssetSelect = useCallback(
     (asset: AssetData, insertType: InsertType) => {
       let content = "";
-
       switch (insertType) {
         case "markdown":
           content = `![${asset.slug}](${asset.url})`;
@@ -368,25 +384,18 @@ export default function PostEditorModal({
           content = asset.url;
           break;
       }
-
-      // Determine block type based on insert type
       const blockType: EditorBlock["type"] = insertType === "markdown" ? "text" : "html";
-
       commitEditorState((state) => {
         const newBlock: EditorBlock = {
           id: `block-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
           type: blockType,
           content,
         };
-
         const newBlocks = [...state.blocks, newBlock];
         return {
           ...state,
           blocks: newBlocks,
-          post: {
-            ...state.post,
-            content: blocksToContent(newBlocks),
-          },
+          project: { ...state.project, content: blocksToContent(newBlocks) },
         };
       });
       setShowAssetPicker(false);
@@ -394,15 +403,6 @@ export default function PostEditorModal({
     [commitEditorState],
   );
 
-  // Keyboard shortcuts:
-  //   Cmd+S / Ctrl+S              → save
-  //   Cmd+Z / Ctrl+Z              → undo
-  //   Cmd+Shift+Z / Ctrl+Shift+Z  → redo
-  //   Cmd/Ctrl+Enter              → save & close when confirm modal is open
-  //   Escape                      → request close / dismiss confirm modal
-  //
-  // Escape is handled in the capture phase so CodeMirror's stopPropagation
-  // on the bubble phase cannot block it.
   useEffect(() => {
     if (!isOpen) return;
 
@@ -434,9 +434,6 @@ export default function PostEditorModal({
       }
     };
 
-    // Escape is handled in the capture phase so CodeMirror's stopPropagation
-    // on the bubble phase cannot block it. We use keydown here because capture
-    // fires before any target handler regardless of phase.
     const handleEscapeCapture = (e: KeyboardEvent) => {
       if (e.key !== "Escape") return;
       e.stopPropagation();
@@ -466,13 +463,14 @@ export default function PostEditorModal({
 
   if (!isOpen) return null;
 
-  const canDelete = Boolean(localPost.originalSlug);
+  const canDelete = Boolean(localProject.originalSlug);
 
   return (
     <>
       <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm" onClick={requestClose} />
 
       <div className="fixed inset-4 z-50 flex flex-col overflow-hidden border border-[#202632] bg-[#0a0d12] lg:inset-8 xl:inset-12">
+        {/* Header */}
         <header className="flex items-center justify-between border-b border-[#202632] px-6 py-4">
           <div className="flex items-center gap-4">
             <button
@@ -495,10 +493,10 @@ export default function PostEditorModal({
             </button>
             <div>
               <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-[#7d8a99]">
-                {localPost.originalSlug ? "Editing Post" : "New Post"}
+                {localProject.originalSlug ? "Editing Project" : "New Project"}
               </p>
               <h1 className="text-lg font-semibold text-white truncate max-w-md">
-                {localPost.title || "Untitled draft"}
+                {localProject.title || "Untitled project"}
               </h1>
             </div>
           </div>
@@ -509,8 +507,8 @@ export default function PostEditorModal({
                 type="button"
                 onClick={handleUndo}
                 disabled={!canUndo}
-                className="px-3 py-2 text-[#607080] transition-colors hover:text-[#f5f7fa] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:text-[#607080]"
-                title="Undo (⌘Z / Ctrl+Z)"
+                className="px-3 py-2 text-[#607080] transition-colors hover:text-[#f5f7fa] disabled:cursor-not-allowed disabled:opacity-40"
+                title="Undo"
                 aria-label="Undo"
               >
                 <svg
@@ -529,8 +527,8 @@ export default function PostEditorModal({
                 type="button"
                 onClick={handleRedo}
                 disabled={!canRedo}
-                className="border-l border-[#202632] px-3 py-2 text-[#607080] transition-colors hover:text-[#f5f7fa] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:text-[#607080]"
-                title="Redo (⌘⇧Z / Ctrl+Shift+Z)"
+                className="border-l border-[#202632] px-3 py-2 text-[#607080] transition-colors hover:text-[#f5f7fa] disabled:cursor-not-allowed disabled:opacity-40"
+                title="Redo"
                 aria-label="Redo"
               >
                 <svg
@@ -581,7 +579,6 @@ export default function PostEditorModal({
             >
               Assets
             </button>
-
             <button
               type="button"
               onClick={() => setShowComponentDrawer(true)}
@@ -589,16 +586,14 @@ export default function PostEditorModal({
             >
               Components
             </button>
-
             <button
               type="button"
               onClick={handleSave}
               disabled={isSaving}
               className="border border-[#3a4758] bg-[#f5f7fa] px-5 py-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-[#0a0d12] transition hover:bg-[#dfe6ee] disabled:cursor-not-allowed disabled:opacity-50"
             >
-              {isSaving ? "Saving..." : "Save Post"}
+              {isSaving ? "Saving..." : "Save Project"}
             </button>
-
             {canDelete && (
               <button
                 type="button"
@@ -618,6 +613,7 @@ export default function PostEditorModal({
           </div>
         )}
 
+        {/* Body */}
         <div className="flex-1 overflow-hidden">
           <div className="h-full grid grid-cols-1 xl:grid-cols-[1fr_380px]">
             <main className="h-full overflow-y-auto">
@@ -629,99 +625,169 @@ export default function PostEditorModal({
                         Title
                       </span>
                       <input
-                        value={localPost.title}
+                        value={localProject.title}
                         onChange={(e) => updateTitle(e.target.value)}
-                        placeholder="Article title"
+                        placeholder="Project title"
                         className="w-full border border-[#202632] bg-[#0b0f14] px-4 py-3 text-sm text-white outline-none transition placeholder:text-[#506172] focus:border-[#7dd3fc]"
                       />
                     </label>
-
                     <label className="block">
                       <span className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.16em] text-[#7d8a99]">
                         Slug
                       </span>
                       <input
-                        value={localPost.slug}
+                        value={localProject.slug}
                         onChange={(e) => updateSlug(e.target.value)}
-                        placeholder="article-slug"
+                        placeholder="project-slug"
                         className="w-full border border-[#202632] bg-[#0b0f14] px-4 py-3 text-sm text-white outline-none transition placeholder:text-[#506172] focus:border-[#7dd3fc]"
                       />
                     </label>
-
                     <label className="block md:col-span-2">
                       <span className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.16em] text-[#7d8a99]">
                         Excerpt
                       </span>
                       <input
-                        value={localPost.excerpt}
+                        value={localProject.excerpt}
                         onChange={(e) => updateField("excerpt", e.target.value)}
                         placeholder="Brief summary for cards and SEO"
                         className="w-full border border-[#202632] bg-[#0b0f14] px-4 py-3 text-sm text-white outline-none transition placeholder:text-[#506172] focus:border-[#7dd3fc]"
                       />
                     </label>
-
                     <label className="block">
                       <span className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.16em] text-[#7d8a99]">
                         Created At
                       </span>
                       <input
                         type="datetime-local"
-                        value={formatTimestampForInput(localPost.createdAt)}
+                        value={formatTimestampForInput(localProject.createdAt)}
                         onChange={(e) =>
                           updateField("createdAt", parseInputToTimestamp(e.target.value))
                         }
                         className="w-full border border-[#202632] bg-[#0b0f14] px-4 py-3 text-sm text-white outline-none transition focus:border-[#7dd3fc]"
                       />
                     </label>
-
                     <label className="block">
                       <span className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.16em] text-[#7d8a99]">
                         Cover URL
                       </span>
                       <input
-                        value={localPost.cover}
+                        value={localProject.cover}
                         onChange={(e) => updateField("cover", e.target.value)}
                         placeholder="/images/cover.png"
                         className="w-full border border-[#202632] bg-[#0b0f14] px-4 py-3 text-sm text-white outline-none transition placeholder:text-[#506172] focus:border-[#7dd3fc]"
                       />
                     </label>
-
-                    <label className="block">
-                      <span className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.16em] text-[#7d8a99]">
-                        Reading Time (min)
-                      </span>
-                      <input
-                        type="number"
-                        min="1"
-                        value={localPost.readingTime}
-                        onChange={(e) => updateField("readingTime", parseInt(e.target.value) || 1)}
-                        className="w-full border border-[#202632] bg-[#0b0f14] px-4 py-3 text-sm text-white outline-none transition focus:border-[#7dd3fc]"
-                      />
-                    </label>
-
                     <label className="block md:col-span-2">
                       <span className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.16em] text-[#7d8a99]">
                         Tags
                       </span>
                       <input
-                        value={localPost.tags}
+                        value={localProject.tags}
                         onChange={(e) => updateField("tags", e.target.value)}
                         placeholder="react, typescript, architecture"
                         className="w-full border border-[#202632] bg-[#0b0f14] px-4 py-3 text-sm text-white outline-none transition placeholder:text-[#506172] focus:border-[#7dd3fc]"
                       />
                     </label>
 
-                    <label className="flex items-center gap-3 border border-[#202632] bg-[#0b0f14] px-4 py-3 md:col-span-2 cursor-pointer">
+                    {/* Open Source toggle */}
+                    <label className="flex items-center gap-3 border border-[#202632] bg-[#0b0f14] px-4 py-3 cursor-pointer">
                       <input
                         type="checkbox"
-                        checked={localPost.published}
+                        checked={localProject.isOpenSource}
+                        onChange={(e) => updateField("isOpenSource", e.target.checked)}
+                        className="h-4 w-4 border border-[#3a4758] bg-transparent accent-[#7dd3fc]"
+                      />
+                      <span className="text-sm text-[#dce3ea]">Open Source</span>
+                    </label>
+
+                    {/* Source URL (visible when open source) */}
+                    {localProject.isOpenSource && (
+                      <label className="block">
+                        <span className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.16em] text-[#7d8a99]">
+                          Source Code URL
+                        </span>
+                        <input
+                          value={localProject.sourceUrl}
+                          onChange={(e) => updateField("sourceUrl", e.target.value)}
+                          placeholder="https://github.com/..."
+                          className="w-full border border-[#202632] bg-[#0b0f14] px-4 py-3 text-sm text-white outline-none transition placeholder:text-[#506172] focus:border-[#7dd3fc]"
+                        />
+                      </label>
+                    )}
+
+                    {/* Pinned toggle */}
+                    <label className="flex items-center gap-3 border border-[#202632] bg-[#0b0f14] px-4 py-3 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={localProject.pinned}
+                        onChange={(e) => updateField("pinned", e.target.checked)}
+                        className="h-4 w-4 border border-[#3a4758] bg-transparent accent-[#7dd3fc]"
+                      />
+                      <span className="text-sm text-[#dce3ea]">Pin to sidebar</span>
+                    </label>
+
+                    {/* Published toggle */}
+                    <label className="flex items-center gap-3 border border-[#202632] bg-[#0b0f14] px-4 py-3 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={localProject.published}
                         onChange={(e) => updateField("published", e.target.checked)}
                         className="h-4 w-4 border border-[#3a4758] bg-transparent accent-[#7dd3fc]"
                       />
-                      <span className="text-sm text-[#dce3ea]">Publish this article</span>
+                      <span className="text-sm text-[#dce3ea]">Publish this project</span>
                     </label>
                   </div>
 
+                  {/* Gallery manager */}
+                  <div className="mb-6 border border-[#202632] bg-[#0b0f14] p-4">
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#7d8a99] mb-3">
+                      Gallery Images
+                    </p>
+                    {localProject.gallery.length > 0 && (
+                      <div className="space-y-2 mb-3">
+                        {localProject.gallery.map((url, idx) => (
+                          <div
+                            key={idx}
+                            className="flex items-center gap-2 border border-[#202632] bg-[#0a0d12] px-3 py-2"
+                          >
+                            <span className="flex-1 min-w-0 text-sm text-[#8fa1b3] truncate">
+                              {url}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => removeGalleryImage(idx)}
+                              className="shrink-0 border border-[#202632] px-2 py-1 text-[10px] text-[#8fa1b3] transition hover:border-[#7f3030] hover:text-[#fca5a5]"
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    <div className="flex gap-2">
+                      <input
+                        value={galleryInput}
+                        onChange={(e) => setGalleryInput(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            addGalleryImage();
+                          }
+                        }}
+                        placeholder="Image URL (e.g. /assets/screenshot.png)"
+                        className="flex-1 border border-[#202632] bg-[#0f141b] px-3 py-2 text-sm text-white outline-none placeholder:text-[#506172] focus:border-[#5b9fd6]"
+                      />
+                      <button
+                        type="button"
+                        onClick={addGalleryImage}
+                        className="shrink-0 border border-[#3a4758] px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-[#f5f7fa] transition hover:bg-[#151c25]"
+                      >
+                        + Add
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Content blocks */}
                   <div className="mb-4">
                     <div className="flex items-center justify-between mb-3">
                       <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#7d8a99]">
@@ -731,7 +797,6 @@ export default function PostEditorModal({
                         Mix Markdown and HTML freely
                       </span>
                     </div>
-
                     <div className="pl-10">
                       <VisualEditor
                         blocks={blocks}
@@ -744,48 +809,70 @@ export default function PostEditorModal({
               ) : (
                 <div className="h-full p-6">
                   <div className="h-full border border-[#202632] bg-[#080b10]">
-                    <PostPreview content={localPost.content} className="w-full h-full" />
+                    <PostPreview content={localProject.content} className="w-full h-full" />
                   </div>
                 </div>
               )}
             </main>
 
+            {/* Sidebar */}
             <aside className="hidden xl:block border-l border-[#202632] bg-[#0f141b] overflow-y-auto">
               <div className="p-5">
                 <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#7d8a99] mb-4">
-                  Post Preview Card
+                  Project Preview Card
                 </p>
-
                 <div className="border border-[#202632] bg-[#0b0f14] p-4">
                   <div className="flex items-center justify-between gap-3 mb-3">
                     <span className="text-[10px] uppercase tracking-[0.16em] text-[#607080]">
-                      {formatTimestampForDisplay(localPost.createdAt)}
+                      {formatTimestampForDisplay(localProject.createdAt)}
                     </span>
-                    <span
-                      className={[
-                        "border px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.14em]",
-                        localPost.published
-                          ? "border-[#294b36] text-[#92d0a6]"
-                          : "border-[#4d3c1a] text-[#d4b16a]",
-                      ].join(" ")}
-                    >
-                      {localPost.published ? "Published" : "Draft"}
-                    </span>
+                    <div className="flex gap-1">
+                      {localProject.pinned && (
+                        <span className="border border-[#3a4758] px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.14em] text-[#7dd3fc]">
+                          Featured
+                        </span>
+                      )}
+                      <span
+                        className={[
+                          "border px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.14em]",
+                          localProject.published
+                            ? "border-[#294b36] text-[#92d0a6]"
+                            : "border-[#4d3c1a] text-[#d4b16a]",
+                        ].join(" ")}
+                      >
+                        {localProject.published ? "Published" : "Draft"}
+                      </span>
+                    </div>
                   </div>
-
                   <h3 className="text-lg font-semibold text-white mb-2 leading-snug">
-                    {localPost.title || "Untitled"}
+                    {localProject.title || "Untitled"}
                   </h3>
-
                   <p className="text-xs text-[#8fa1b3] leading-relaxed mb-3">
-                    {localPost.excerpt || "No excerpt provided."}
+                    {localProject.excerpt || "No excerpt provided."}
                   </p>
-
-                  {localPost.tags && (
+                  {localProject.isOpenSource && (
+                    <div className="flex items-center gap-2 mb-3">
+                      <span className="border border-[#294b36] px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.14em] text-[#92d0a6]">
+                        Open Source
+                      </span>
+                      {localProject.sourceUrl && (
+                        <span className="text-[10px] text-[#506172] truncate">
+                          {localProject.sourceUrl}
+                        </span>
+                      )}
+                    </div>
+                  )}
+                  {localProject.gallery.length > 0 && (
+                    <p className="text-[10px] text-[#607080] mb-3">
+                      {localProject.gallery.length} gallery image
+                      {localProject.gallery.length !== 1 ? "s" : ""}
+                    </p>
+                  )}
+                  {localProject.tags && (
                     <div className="flex flex-wrap gap-1.5 mb-3">
-                      {localPost.tags
+                      {localProject.tags
                         .split(",")
-                        .map((t) => t.trim())
+                        .map((tg) => tg.trim())
                         .filter(Boolean)
                         .map((tag) => (
                           <span
@@ -797,32 +884,9 @@ export default function PostEditorModal({
                         ))}
                     </div>
                   )}
-
                   <div className="pt-3 border-t border-[#202632] text-[10px] uppercase tracking-[0.14em] text-[#7dd3fc]">
-                    /blog/{localPost.slug || "your-slug"}
+                    /projects/{localProject.slug || "your-slug"}
                   </div>
-                </div>
-              </div>
-
-              <div className="p-5 border-t border-[#202632]">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#7d8a99] mb-4">
-                  Quick Help
-                </p>
-
-                <div className="space-y-3 text-xs text-[#8fa1b3] leading-relaxed">
-                  <p>
-                    <strong className="text-white">Markdown blocks</strong> support standard syntax:
-                    headings, lists, code, links, and emphasis.
-                  </p>
-                  <p>
-                    <strong className="text-white">HTML blocks</strong> render raw HTML with full
-                    CSS and JavaScript support.
-                  </p>
-                  <p>
-                    <strong className="text-white">Components</strong> are pre-built HTML snippets
-                    you can drag from the drawer.
-                  </p>
-                  <p>Drag blocks to reorder. Each block type is independent—mix them freely.</p>
                 </div>
               </div>
 
@@ -830,10 +894,9 @@ export default function PostEditorModal({
                 <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#7d8a99] mb-4">
                   Keyboard Shortcuts
                 </p>
-
                 <div className="space-y-2 text-xs">
                   <div className="flex justify-between">
-                    <span className="text-[#8fa1b3]">Save post</span>
+                    <span className="text-[#8fa1b3]">Save project</span>
                     <kbd className="px-1.5 py-0.5 border border-[#202632] bg-[#0b0f14] text-[#607080] font-mono text-[10px]">
                       ⌘S
                     </kbd>
@@ -847,7 +910,7 @@ export default function PostEditorModal({
                   <div className="flex justify-between">
                     <span className="text-[#8fa1b3]">Redo</span>
                     <kbd className="px-1.5 py-0.5 border border-[#202632] bg-[#0b0f14] text-[#607080] font-mono text-[10px]">
-                      ⌘⇧Z / Ctrl⇧Z
+                      ⌘⇧Z
                     </kbd>
                   </div>
                   <div className="flex justify-between">
@@ -863,7 +926,7 @@ export default function PostEditorModal({
         </div>
       </div>
 
-      {/* ── Confirm-close modal ─────────────────────────────────────────── */}
+      {/* Confirm-close modal */}
       {showConfirmClose && (
         <div className="fixed inset-0 z-60 flex items-center justify-center p-4">
           <div
@@ -871,7 +934,6 @@ export default function PostEditorModal({
             onClick={() => setShowConfirmClose(false)}
           />
           <div className="relative z-10 w-full max-w-md border border-[#3a4758] bg-[#0d1219] shadow-2xl">
-            {/* Header */}
             <div className="border-b border-[#202632] px-5 py-4">
               <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-[#607080]">
                 Unsaved changes
@@ -880,17 +942,15 @@ export default function PostEditorModal({
                 Discard changes and close?
               </h2>
             </div>
-
-            {/* Body */}
             <div className="px-5 py-4">
               <p className="text-sm leading-relaxed text-[#8fa1b3]">
                 You have unsaved changes to{" "}
-                <span className="font-medium text-white">{localPost.title || "this post"}</span>.
-                They will be permanently lost if you close without saving.
+                <span className="font-medium text-white">
+                  {localProject.title || "this project"}
+                </span>
+                . They will be permanently lost if you close without saving.
               </p>
             </div>
-
-            {/* Actions — stacked so labels never wrap */}
             <div className="grid grid-cols-3 gap-px border-t border-[#202632] bg-[#202632]">
               <button
                 type="button"
@@ -904,7 +964,6 @@ export default function PostEditorModal({
                 onClick={handleSave}
                 disabled={isSaving}
                 className="bg-[#f5f7fa] px-4 py-3 text-[10px] font-semibold uppercase tracking-[0.16em] text-[#0a0d12] transition hover:bg-white disabled:opacity-50"
-                title="Save and close (⌘↵)"
               >
                 {isSaving ? "Saving…" : "Save & close"}
               </button>
@@ -920,24 +979,6 @@ export default function PostEditorModal({
                 Discard
               </button>
             </div>
-
-            {/* Hint */}
-            <div className="border-t border-[#202632] px-5 py-3">
-              <p className="text-[10px] text-[#404f60]">
-                <kbd className="mr-0.5 rounded-none border border-[#2a3848] bg-[#0b0f14] px-1.5 py-0.5 font-mono text-[10px] text-[#607080]">
-                  ⌘↵
-                </kbd>
-                {" / "}
-                <kbd className="mx-0.5 rounded-none border border-[#2a3848] bg-[#0b0f14] px-1.5 py-0.5 font-mono text-[10px] text-[#607080]">
-                  Ctrl↵
-                </kbd>{" "}
-                to save &amp; close ·{" "}
-                <kbd className="ml-0.5 rounded-none border border-[#2a3848] bg-[#0b0f14] px-1.5 py-0.5 font-mono text-[10px] text-[#607080]">
-                  Esc
-                </kbd>{" "}
-                to keep editing
-              </p>
-            </div>
           </div>
         </div>
       )}
@@ -947,7 +988,6 @@ export default function PostEditorModal({
         onClose={() => setShowComponentDrawer(false)}
         onInsert={insertComponent}
       />
-
       <AssetPicker
         isOpen={showAssetPicker}
         onCloseAction={() => setShowAssetPicker(false)}
@@ -957,7 +997,7 @@ export default function PostEditorModal({
   );
 }
 
-export function createBlankPost(): PostData {
+export function createBlankProject(): ProjectData {
   return {
     originalSlug: "",
     slug: "",
@@ -965,34 +1005,43 @@ export function createBlankPost(): PostData {
     excerpt: "",
     createdAt: Date.now(),
     published: true,
+    pinned: false,
     tags: "",
     cover: "",
-    readingTime: 1,
-    content: "# New Post\n\nStart writing here.\n",
+    gallery: [],
+    isOpenSource: false,
+    sourceUrl: "",
+    content: "# New Project\n\nDescribe your project here.\n",
   };
 }
 
-export function postToEditorData(post: {
+export function projectToEditorData(raw: {
   slug: string;
   title: string;
   excerpt: string;
   createdAt: number;
   published: boolean;
+  pinned: boolean;
   tags: string[];
-  cover?: string;
-  readingTime?: number;
+  cover: string;
+  gallery: string[];
+  isOpenSource: boolean;
+  sourceUrl: string;
   content: string;
-}): PostData {
+}): ProjectData {
   return {
-    originalSlug: post.slug,
-    slug: post.slug,
-    title: post.title,
-    excerpt: post.excerpt,
-    createdAt: post.createdAt,
-    published: post.published,
-    tags: post.tags.join(", "),
-    cover: post.cover ?? "",
-    readingTime: post.readingTime ?? 1,
-    content: post.content,
+    originalSlug: raw.slug,
+    slug: raw.slug,
+    title: raw.title,
+    excerpt: raw.excerpt,
+    createdAt: raw.createdAt,
+    published: raw.published,
+    pinned: raw.pinned,
+    tags: raw.tags.join(", "),
+    cover: raw.cover,
+    gallery: raw.gallery,
+    isOpenSource: raw.isOpenSource,
+    sourceUrl: raw.sourceUrl,
+    content: raw.content,
   };
 }
