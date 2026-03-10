@@ -185,23 +185,23 @@ export default function AssetsManager({ initialAssets }: AssetsManagerProps) {
 
       <div className="p-5 space-y-4">
         {/* Search and filter */}
-        <div className="flex flex-col gap-3 sm:flex-row">
+        <div className="flex flex-col gap-3">
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search assets..."
-            className="flex-1 border border-[#202632] bg-[#0f141b] px-3 py-2 text-sm text-white outline-none transition placeholder:text-[#506172] focus:border-[#7dd3fc]"
+            className="w-full min-w-0 border border-[#202632] bg-[#0f141b] px-3 py-2 text-sm text-white outline-none transition placeholder:text-[#506172] focus:border-[#7dd3fc] sm:flex-1"
           />
 
-          <div className="flex border border-[#202632]">
+          <div className="flex flex-wrap border border-[#202632]">
             {(["all", "image", "video", "audio", "other"] as const).map((type) => (
               <button
                 key={type}
                 type="button"
                 onClick={() => setFilterType(type)}
                 className={[
-                  "px-2 py-1 text-[9px] font-semibold uppercase tracking-[0.12em] transition",
+                  "min-w-[calc(50%-0.125rem)] flex-1 px-3 py-2 text-[9px] font-semibold uppercase tracking-[0.12em] transition sm:min-w-0",
                   filterType === type
                     ? "bg-[#f5f7fa] text-[#0a0d12]"
                     : "text-[#c7d0db] hover:bg-[#151c25]",
@@ -231,7 +231,7 @@ export default function AssetsManager({ initialAssets }: AssetsManagerProps) {
               return (
                 <div
                   key={asset.id}
-                  className="flex items-center gap-3 border border-[#202632] bg-[#0a0d12] p-3"
+                  className="flex flex-col gap-3 border border-[#202632] bg-[#0a0d12] p-3 sm:flex-row sm:items-center"
                 >
                   {/* Thumbnail */}
                   <div className="h-12 w-12 shrink-0 overflow-hidden border border-[#202632] bg-[#080b10]">
@@ -254,7 +254,7 @@ export default function AssetsManager({ initialAssets }: AssetsManagerProps) {
                   </div>
 
                   {/* Info */}
-                  <div className="flex-1 min-w-0">
+                  <div className="min-w-0 flex-1">
                     {isEditing ? (
                       <div className="space-y-2">
                         <input
@@ -265,7 +265,7 @@ export default function AssetsManager({ initialAssets }: AssetsManagerProps) {
                           autoFocus
                         />
                         {error && <p className="text-xs text-[#ff8f8f]">{error}</p>}
-                        <div className="flex gap-2">
+                        <div className="flex flex-col gap-2 sm:flex-row">
                           <button
                             type="button"
                             onClick={handleSaveEdit}
@@ -295,7 +295,7 @@ export default function AssetsManager({ initialAssets }: AssetsManagerProps) {
 
                   {/* Actions */}
                   {!isEditing && (
-                    <div className="flex gap-1 shrink-0">
+                    <div className="flex w-full flex-wrap gap-1 shrink-0 sm:w-auto sm:flex-nowrap">
                       <button
                         type="button"
                         onClick={() => handleCopyUrl(asset)}

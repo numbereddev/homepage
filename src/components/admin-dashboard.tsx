@@ -563,7 +563,7 @@ export default function AdminDashboard({
     <div className="min-h-screen bg-[#080b10] text-[#f5f7fa]">
       <header className="border-b border-[#202632] bg-[#0a0d12]">
         <div className="mx-auto max-w-7xl px-6 py-4 lg:px-8">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-6">
               <div>
                 <p className="text-[10px] font-semibold uppercase tracking-[0.32em] text-[#7d8a99]">
@@ -573,23 +573,25 @@ export default function AdminDashboard({
               </div>
             </div>
 
-            <div className="flex items-center gap-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
               <span className="text-xs text-[#607080]">
                 Signed in as <span className="text-[#c7d0db]">{adminUsername}</span>
               </span>
-              <button
-                type="button"
-                onClick={handleLogout}
-                disabled={isLoggingOut}
-                className="border border-[#3a4758] px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-[#c7d0db] transition hover:bg-[#151c25] disabled:opacity-50"
-              >
-                {isLoggingOut ? "Signing out..." : "Sign Out"}
-              </button>
-              <Link href="/">
-                <button className="border border-[#3a4758] px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-[#c7d0db] transition hover:bg-[#151c25] disabled:opacity-50">
-                  Home
+              <div className="flex flex-col gap-2 sm:flex-row">
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  disabled={isLoggingOut}
+                  className="border border-[#3a4758] px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-[#c7d0db] transition hover:bg-[#151c25] disabled:opacity-50"
+                >
+                  {isLoggingOut ? "Signing out..." : "Sign Out"}
                 </button>
-              </Link>
+                <Link href="/">
+                  <button className="border border-[#3a4758] px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-[#c7d0db] transition hover:bg-[#151c25] disabled:opacity-50">
+                    Home
+                  </button>
+                </Link>
+              </div>
             </div>
           </div>
         </div>
@@ -652,7 +654,7 @@ export default function AdminDashboard({
                     placeholder="Search posts..."
                     className="flex-1 border border-[#202632] bg-[#0b0f14] px-4 py-3 text-sm text-white outline-none transition placeholder:text-[#506172] focus:border-[#7dd3fc]"
                   />
-                  <div className="flex border border-[#202632]">
+                  <div className="grid grid-cols-3 border border-[#202632] sm:flex">
                     {(["all", "published", "draft"] as const).map((status) => (
                       <button
                         key={status}
@@ -694,8 +696,8 @@ export default function AdminDashboard({
                         onClick={() => openExistingPost(post.slug)}
                         className="group block w-full border border-[#202632] bg-[#0b0f14] p-5 text-left transition hover:border-[#3a4758] hover:bg-[#0f141b]"
                       >
-                        <div className="flex items-start justify-between gap-4">
-                          <div className="flex-1 min-w-0">
+                        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                          <div className="min-w-0 flex-1">
                             <h3 className="text-base font-semibold text-[#f5f7fa] group-hover:text-white truncate">
                               {post.title}
                             </h3>
@@ -716,7 +718,7 @@ export default function AdminDashboard({
                           </div>
                           <span
                             className={[
-                              "shrink-0 border px-2 py-1 text-[9px] font-semibold uppercase tracking-[0.16em]",
+                              "inline-flex w-fit shrink-0 border px-2 py-1 text-[9px] font-semibold uppercase tracking-[0.16em]",
                               post.published
                                 ? "border-[#294b36] text-[#92d0a6]"
                                 : "border-[#4d3c1a] text-[#d4b16a]",
@@ -782,8 +784,8 @@ export default function AdminDashboard({
                         onClick={() => openExistingProject(proj.slug)}
                         className="group block w-full border border-[#202632] bg-[#0b0f14] p-5 text-left transition hover:border-[#3a4758] hover:bg-[#0f141b]"
                       >
-                        <div className="flex items-start justify-between gap-4">
-                          <div className="flex-1 min-w-0">
+                        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                          <div className="min-w-0 flex-1">
                             <h3 className="text-base font-semibold text-[#f5f7fa] group-hover:text-white truncate">
                               {proj.title}
                             </h3>
@@ -808,15 +810,15 @@ export default function AdminDashboard({
                               )}
                             </div>
                           </div>
-                          <div className="flex gap-1 shrink-0">
+                          <div className="flex w-full flex-wrap gap-1 sm:w-auto sm:shrink-0 sm:justify-end">
                             {proj.pinned && (
-                              <span className="border border-[#3a4758] px-2 py-1 text-[9px] font-semibold uppercase tracking-[0.16em] text-[#7dd3fc]">
+                              <span className="inline-flex w-fit border border-[#3a4758] px-2 py-1 text-[9px] font-semibold uppercase tracking-[0.16em] text-[#7dd3fc]">
                                 Featured
                               </span>
                             )}
                             <span
                               className={[
-                                "border px-2 py-1 text-[9px] font-semibold uppercase tracking-[0.16em]",
+                                "inline-flex w-fit border px-2 py-1 text-[9px] font-semibold uppercase tracking-[0.16em]",
                                 proj.published
                                   ? "border-[#294b36] text-[#92d0a6]"
                                   : "border-[#4d3c1a] text-[#d4b16a]",
@@ -853,7 +855,7 @@ export default function AdminDashboard({
                 {links.length === 0 ? (
                   <p className="text-sm text-[#607080]">No links yet. Add one below.</p>
                 ) : (
-                  <div className="space-y-2">
+                  <div className="space-y-2 overflow-x-hidden">
                     {[...links]
                       .sort((a, b) => a.display_order - b.display_order)
                       .map((link, idx, arr) => (

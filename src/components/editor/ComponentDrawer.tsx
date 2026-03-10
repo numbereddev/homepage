@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import CodeEditor from "./CodeEditor";
 import TokenPalette from "./TokenPalette";
 import {
@@ -224,11 +224,16 @@ export default function ComponentDrawer({ onInsert, isOpen, onClose }: Component
     definition: ComponentDefinition;
     instance: ComponentInstance;
   } | null>(null);
+  const [editingSourceComponent, setEditingSourceComponent] = useState<ComponentDefinition | null>(
+    null,
+  );
+  const [sourceLabel, setSourceLabel] = useState("");
+  const [sourceCategory, setSourceCategory] = useState("Custom");
+  const [sourceTemplate, setSourceTemplate] = useState("");
+  const [sourceDescription, setSourceDescription] = useState("");
   const [showAddForm, setShowAddForm] = useState(false);
-  const [newLabel, setNewLabel] = useState("");
-  const [newCategory, setNewCategory] = useState("Custom");
-  const [newTemplate, setNewTemplate] = useState("");
-  const [newDescription, setNewDescription] = useState("");
+  const sourceEditorInsertRef = useRef<((text: string) => void) | null>(null);
+  const sourceEditorPaletteRef = useRef<HTMLDivElement | null>(null);
 
   // Initialize custom components from localStorage on mount
   const [isInitialized, setIsInitialized] = useState(false);
@@ -258,25 +263,22 @@ export default function ComponentDrawer({ onInsert, isOpen, onClose }: Component
   }, []);
 
   const addCustomComponent = useCallback(() => {
-    if (!newLabel.trim() || !newTemplate.trim()) return;
-
-    const id = `custom-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
-    const newDef = parseComponentDefinition(
-      id,
-      newLabel.trim(),
-      newCategory.trim() || "Custom",
-      newTemplate,
-      newDescription.trim() || undefined,
-    );
-    (newDef as ComponentDefinition & { isCustom: boolean }).isCustom = true;
-
-    saveCustomComponents([...customComponents, newDef]);
-    setNewLabel("");
-    setNewCategory("Custom");
-    setNewTemplate("");
-    setNewDescription("");
+    setEditingSourceComponent({
+      id: `custom-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+      label: "",
+      category: "Custom",
+      description: "",
+      template: "",
+      fields: [],
+      arrays: [],
+      isCustom: true,
+    } as ComponentDefinition);
+    setSourceLabel("");
+    setSourceCategory("Custom");
+    setSourceTemplate("");
+    setSourceDescription("");
     setShowAddForm(false);
-  }, [newLabel, newCategory, newTemplate, newDescription, customComponents, saveCustomComponents]);
+  }, []);
 
   const deleteCustomComponent = useCallback(
     (id: string) => {
@@ -285,19 +287,56 @@ export default function ComponentDrawer({ onInsert, isOpen, onClose }: Component
     [customComponents, saveCustomComponents],
   );
 
-  const handleDragStart = useCallback((e: React.DragEvent, definition: ComponentDefinition) => {
-    const instance = createComponentInstance(definition);
-    const html = renderInstance(instance, definition);
-    e.dataTransfer.setData("component/html", html);
-    e.dataTransfer.setData("component/definition", JSON.stringify(definition));
-    e.dataTransfer.setData("component/instance", JSON.stringify(instance));
-    e.dataTransfer.effectAllowed = "copy";
-  }, []);
-
   const openEditor = useCallback((definition: ComponentDefinition) => {
     const instance = createComponentInstance(definition);
     setEditingInstance({ definition, instance });
   }, []);
+
+  const openSourceEditor = useCallback((definition: ComponentDefinition) => {
+    setEditingSourceComponent(definition);
+    setSourceLabel(definition.label);
+    setSourceCategory(definition.category);
+    setSourceTemplate(definition.template);
+    setSourceDescription(definition.description || "");
+  }, []);
+
+  const handleSaveSourceComponent = useCallback(() => {
+    if (!editingSourceComponent || !sourceLabel.trim() || !sourceTemplate.trim()) return;
+
+    const updatedDef = parseComponentDefinition(
+      editingSourceComponent.id,
+      sourceLabel.trim(),
+      sourceCategory.trim() || "Custom",
+      sourceTemplate,
+      sourceDescription.trim() || undefined,
+    );
+    (updatedDef as ComponentDefinition & { isCustom: boolean }).isCustom = true;
+
+    const existingIndex = customComponents.findIndex(
+      (component) => component.id === editingSourceComponent.id,
+    );
+
+    saveCustomComponents(
+      existingIndex >= 0
+        ? customComponents.map((component) =>
+            component.id === editingSourceComponent.id ? updatedDef : component,
+          )
+        : [...customComponents, updatedDef],
+    );
+    setEditingSourceComponent(null);
+    setSourceLabel("");
+    setSourceCategory("Custom");
+    setSourceTemplate("");
+    setSourceDescription("");
+  }, [
+    editingSourceComponent,
+    sourceLabel,
+    sourceCategory,
+    sourceTemplate,
+    sourceDescription,
+    customComponents,
+    saveCustomComponents,
+  ]);
 
   const handleFieldChange = useCallback(
     (fieldName: string, value: string) => {
@@ -374,6 +413,110 @@ export default function ComponentDrawer({ onInsert, isOpen, onClose }: Component
 
   if (!isOpen) return null;
 
+  // Custom component source editor view
+  if (editingSourceComponent) {
+    return (
+      <>
+        <div
+          className="fixed inset-0 z-40 drawer-backdrop"
+          onClick={() => setEditingSourceComponent(null)}
+        />
+
+        <aside className="fixed inset-2 z-50 flex max-h-[calc(100dvh-1rem)] min-h-0 min-w-0 flex-col overflow-hidden border border-[#202632] bg-[#0a0d12] drawer-panel sm:fixed sm:top-0 sm:right-0 sm:bottom-0 sm:left-auto sm:max-h-none sm:w-full sm:max-w-lg sm:border-l sm:border-y-0 sm:border-r-0">
+          <div className="flex min-w-0 items-center justify-between gap-3 border-b border-[#202632] px-4 py-4 sm:px-5">
+            <div className="min-w-0 flex-1">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-[#7d8a99]">
+                Edit Custom Component
+              </p>
+              <h2 className="mt-1 truncate text-lg font-semibold text-white">
+                {sourceLabel || "Untitled"}
+              </h2>
+            </div>
+            <button
+              type="button"
+              onClick={() => setEditingSourceComponent(null)}
+              className="p-2 text-[#607080] hover:text-[#f5f7fa] transition-colors"
+            >
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
+                <path d="M18 6L6 18M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+
+          <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto p-4 space-y-4 sm:p-5">
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <input
+                type="text"
+                value={sourceLabel}
+                onChange={(e) => setSourceLabel(e.target.value)}
+                placeholder="Component name"
+                className="w-full min-w-0 flex-1 border border-[#202632] bg-[#0b0f14] px-3 py-2 text-sm text-white outline-none transition placeholder:text-[#506172] focus:border-[#7dd3fc]"
+              />
+              <input
+                type="text"
+                value={sourceCategory}
+                onChange={(e) => setSourceCategory(e.target.value)}
+                placeholder="Category"
+                className="w-full border border-[#202632] bg-[#0b0f14] px-3 py-2 text-sm text-white outline-none transition placeholder:text-[#506172] focus:border-[#7dd3fc] sm:w-28"
+              />
+            </div>
+
+            <input
+              type="text"
+              value={sourceDescription}
+              onChange={(e) => setSourceDescription(e.target.value)}
+              placeholder="Description (optional)"
+              className="w-full min-w-0 border border-[#202632] bg-[#0b0f14] px-3 py-2 text-sm text-white outline-none transition placeholder:text-[#506172] focus:border-[#7dd3fc]"
+            />
+
+            <div className="min-w-0 overflow-hidden">
+              <p className="mb-1.5 text-[10px] uppercase tracking-[0.14em] text-[#607080]">
+                Template (use {"{{field}}"}, {"{{#styledField}}"}, {"{{@each array}}...{{/each}}"})
+              </p>
+              <div className="min-w-0 overflow-hidden border border-[#202632] bg-[#0b0f14]">
+                <CodeEditor
+                  value={sourceTemplate}
+                  onChange={setSourceTemplate}
+                  paletteRef={sourceEditorPaletteRef}
+                  insertRef={sourceEditorInsertRef}
+                  minHeight={220}
+                />
+                <div ref={sourceEditorPaletteRef}>
+                  <TokenPalette onInsert={(text) => sourceEditorInsertRef.current?.(text)} />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-3 border-t border-[#202632] p-4 sm:flex-row">
+            <button
+              type="button"
+              onClick={handleSaveSourceComponent}
+              disabled={!sourceLabel.trim() || !sourceTemplate.trim()}
+              className="flex-1 border border-[#3a4758] bg-[#f5f7fa] px-4 py-3 text-xs font-semibold uppercase tracking-[0.18em] text-[#0a0d12] transition hover:bg-[#dfe6ee] disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Save Source
+            </button>
+            <button
+              type="button"
+              onClick={() => setEditingSourceComponent(null)}
+              className="w-full border border-[#3a4758] px-4 py-3 text-xs font-semibold uppercase tracking-[0.18em] text-[#c7d0db] transition hover:bg-[#151c25] sm:w-auto"
+            >
+              Cancel
+            </button>
+          </div>
+        </aside>
+      </>
+    );
+  }
+
   // Component field editor view
   if (editingInstance) {
     const { definition, instance } = editingInstance;
@@ -386,13 +529,13 @@ export default function ComponentDrawer({ onInsert, isOpen, onClose }: Component
           onClick={() => setEditingInstance(null)}
         />
 
-        <aside className="fixed top-0 right-0 bottom-0 z-50 w-full max-w-lg border-l border-[#202632] bg-[#0a0d12] drawer-panel flex flex-col overflow-hidden">
-          <div className="flex items-center justify-between border-b border-[#202632] px-5 py-4">
-            <div>
+        <aside className="fixed inset-2 z-50 flex max-h-[calc(100dvh-1rem)] min-h-0 min-w-0 flex-col overflow-hidden border border-[#202632] bg-[#0a0d12] drawer-panel sm:fixed sm:top-0 sm:right-0 sm:bottom-0 sm:left-auto sm:max-h-none sm:w-full sm:max-w-lg sm:border-l sm:border-y-0 sm:border-r-0">
+          <div className="flex min-w-0 items-center justify-between gap-3 border-b border-[#202632] px-4 py-4 sm:px-5">
+            <div className="min-w-0 flex-1">
               <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-[#7d8a99]">
                 Configure Component
               </p>
-              <h2 className="mt-1 text-lg font-semibold text-white">{definition.label}</h2>
+              <h2 className="mt-1 truncate text-lg font-semibold text-white">{definition.label}</h2>
             </div>
             <button
               type="button"
@@ -412,15 +555,15 @@ export default function ComponentDrawer({ onInsert, isOpen, onClose }: Component
             </button>
           </div>
 
-          <div className="flex-1 overflow-y-auto">
+          <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto">
             {/* Field editors */}
-            <div className="p-5 space-y-4 border-b border-[#202632]">
+            <div className="space-y-4 border-b border-[#202632] p-4 sm:p-5">
               <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[#7d8a99]">
                 Fields
               </p>
 
               {definition.fields.map((field) => (
-                <label key={field.name} className="block">
+                <label key={field.name} className="block min-w-0">
                   <span className="mb-1.5 block text-xs font-medium text-[#c7d0db]">
                     {field.label}
                     {field.type === "styled" && (
@@ -433,7 +576,7 @@ export default function ComponentDrawer({ onInsert, isOpen, onClose }: Component
                     type="text"
                     value={instance.fields[field.name] ?? ""}
                     onChange={(e) => handleFieldChange(field.name, e.target.value)}
-                    className="w-full border border-[#202632] bg-[#0b0f14] px-3 py-2 text-sm text-white outline-none transition placeholder:text-[#506172] focus:border-[#7dd3fc] font-mono"
+                    className="w-full min-w-0 border border-[#202632] bg-[#0b0f14] px-3 py-2 text-sm text-white outline-none transition placeholder:text-[#506172] focus:border-[#7dd3fc] font-mono"
                     placeholder={field.defaultValue || `Enter ${field.label?.toLowerCase()}`}
                   />
                 </label>
@@ -446,15 +589,15 @@ export default function ComponentDrawer({ onInsert, isOpen, onClose }: Component
               if (!array) return null;
 
               return (
-                <div key={arrayDef.name} className="p-5 border-b border-[#202632]">
-                  <div className="flex items-center justify-between mb-3">
+                <div key={arrayDef.name} className="border-b border-[#202632] p-4 sm:p-5">
+                  <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                     <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[#7d8a99]">
                       {arrayDef.name.replace(/([A-Z])/g, " $1").trim()}
                     </p>
                     <button
                       type="button"
                       onClick={() => handleAddArrayItem(arrayDef.name)}
-                      className="px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-[#7dd3fc] hover:text-[#b6e8ff] transition-colors"
+                      className="w-full px-2 py-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-[#7dd3fc] transition-colors hover:text-[#b6e8ff] sm:w-auto"
                     >
                       + Add Item
                     </button>
@@ -464,9 +607,9 @@ export default function ComponentDrawer({ onInsert, isOpen, onClose }: Component
                     {array.items.map((item, itemIndex) => (
                       <div
                         key={itemIndex}
-                        className="border border-[#202632] bg-[#080b0f] p-3 space-y-2"
+                        className="space-y-2 border border-[#202632] bg-[#080b0f] p-3"
                       >
-                        <div className="flex items-center justify-between mb-2">
+                        <div className="mb-2 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                           <span className="text-[10px] uppercase tracking-[0.14em] text-[#506172]">
                             Item {itemIndex + 1}
                           </span>
@@ -474,7 +617,7 @@ export default function ComponentDrawer({ onInsert, isOpen, onClose }: Component
                             <button
                               type="button"
                               onClick={() => handleRemoveArrayItem(arrayDef.name, itemIndex)}
-                              className="text-[10px] text-[#5b3a3a] hover:text-[#ff8f8f] transition-colors"
+                              className="w-full border border-[#5b3a3a] px-2 py-2 text-[10px] text-[#ff8f8f] transition-colors hover:bg-[#1a1010] sm:w-auto sm:border-0 sm:px-0 sm:py-0 sm:text-[#5b3a3a] sm:hover:bg-transparent sm:hover:text-[#ff8f8f]"
                             >
                               Remove
                             </button>
@@ -495,7 +638,7 @@ export default function ComponentDrawer({ onInsert, isOpen, onClose }: Component
                               )
                             }
                             placeholder={field.label || field.name}
-                            className="w-full border border-[#202632] bg-[#0b0f14] px-3 py-2 text-sm text-white outline-none transition placeholder:text-[#506172] focus:border-[#7dd3fc] font-mono"
+                            className="w-full min-w-0 border border-[#202632] bg-[#0b0f14] px-3 py-2 text-sm text-white outline-none transition placeholder:text-[#506172] focus:border-[#7dd3fc] font-mono"
                           />
                         ))}
                       </div>
@@ -506,18 +649,18 @@ export default function ComponentDrawer({ onInsert, isOpen, onClose }: Component
             })}
 
             {/* Live preview */}
-            <div className="p-5">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[#7d8a99] mb-3">
+            <div className="p-4 sm:p-5">
+              <p className="mb-3 text-[10px] font-semibold uppercase tracking-[0.2em] text-[#7d8a99]">
                 Preview
               </p>
               <div
-                className="prose-flat border border-[#202632] bg-[#080b0f] p-4"
+                className="prose-flat overflow-x-auto border border-[#202632] bg-[#080b0f] p-4"
                 dangerouslySetInnerHTML={{ __html: previewHtml }}
               />
             </div>
           </div>
 
-          <div className="border-t border-[#202632] p-4 flex gap-3">
+          <div className="flex flex-col gap-3 border-t border-[#202632] p-4 sm:flex-row">
             <button
               type="button"
               onClick={handleInsertComponent}
@@ -528,7 +671,7 @@ export default function ComponentDrawer({ onInsert, isOpen, onClose }: Component
             <button
               type="button"
               onClick={() => setEditingInstance(null)}
-              className="border border-[#3a4758] px-4 py-3 text-xs font-semibold uppercase tracking-[0.18em] text-[#c7d0db] transition hover:bg-[#151c25]"
+              className="w-full border border-[#3a4758] px-4 py-3 text-xs font-semibold uppercase tracking-[0.18em] text-[#c7d0db] transition hover:bg-[#151c25] sm:w-auto"
             >
               Cancel
             </button>
@@ -543,13 +686,13 @@ export default function ComponentDrawer({ onInsert, isOpen, onClose }: Component
     <>
       <div className="fixed inset-0 z-40 drawer-backdrop" onClick={onClose} />
 
-      <aside className="fixed top-0 right-0 bottom-0 z-50 w-full max-w-md border-l border-[#202632] bg-[#0a0d12] drawer-panel flex flex-col overflow-hidden">
-        <div className="flex items-center justify-between border-b border-[#202632] px-5 py-4">
-          <div>
+      <aside className="fixed inset-2 z-50 flex max-h-[calc(100dvh-1rem)] min-h-0 min-w-0 flex-col overflow-hidden border border-[#202632] bg-[#0a0d12] drawer-panel sm:fixed sm:top-0 sm:right-0 sm:bottom-0 sm:left-auto sm:max-h-none sm:w-full sm:max-w-md sm:border-l sm:border-y-0 sm:border-r-0">
+        <div className="flex min-w-0 items-center justify-between gap-3 border-b border-[#202632] px-4 py-4 sm:px-5">
+          <div className="min-w-0 flex-1">
             <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-[#7d8a99]">
               Components
             </p>
-            <h2 className="mt-1 text-lg font-semibold text-white">Drag & Drop Library</h2>
+            <h2 className="mt-1 truncate text-lg font-semibold text-white">Component Library</h2>
           </div>
           <button
             type="button"
@@ -569,17 +712,17 @@ export default function ComponentDrawer({ onInsert, isOpen, onClose }: Component
           </button>
         </div>
 
-        <div className="border-b border-[#202632] px-5 py-3">
+        <div className="border-b border-[#202632] px-4 py-3 sm:px-5">
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search components..."
-            className="w-full border border-[#202632] bg-[#0b0f14] px-4 py-2.5 text-sm text-white outline-none transition placeholder:text-[#506172] focus:border-[#7dd3fc]"
+            className="w-full min-w-0 border border-[#202632] bg-[#0b0f14] px-4 py-2.5 text-sm text-white outline-none transition placeholder:text-[#506172] focus:border-[#7dd3fc]"
           />
         </div>
 
-        <div className="flex gap-2 overflow-x-auto border-b border-[#202632] px-5 py-3 scrollbar-hide">
+        <div className="flex gap-2 overflow-x-auto border-b border-[#202632] px-4 py-3 scrollbar-hide sm:px-5">
           <button
             type="button"
             onClick={() => setActiveCategory(null)}
@@ -609,23 +752,30 @@ export default function ComponentDrawer({ onInsert, isOpen, onClose }: Component
           ))}
         </div>
 
-        <div className="flex-1 overflow-y-auto px-5 py-4">
+        <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto px-4 py-4 sm:px-5">
           <div className="space-y-3">
             {filteredComponents.map((component) => (
               <div
                 key={component.id}
-                draggable
-                onDragStart={(e) => handleDragStart(e, component)}
-                className="group relative border border-[#202632] bg-[#0b0f14] transition-all hover:border-[#3a4758] cursor-grab active:cursor-grabbing"
+                className="group relative w-full border border-[#202632] bg-[#0b0f14] text-left transition-all hover:border-[#3a4758] cursor-pointer"
+                onClick={() => openEditor(component)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    openEditor(component);
+                  }
+                }}
+                role="button"
+                tabIndex={0}
               >
-                <div className="flex items-start justify-between gap-3 p-4">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
+                <div className="flex flex-col gap-3 p-4 sm:flex-row sm:items-start sm:justify-between">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
                       <span className="text-sm font-semibold text-[#f5f7fa]">
                         {component.label}
                       </span>
                       {"isCustom" in component && component.isCustom && (
-                        <span className="px-1.5 py-0.5 text-[9px] uppercase tracking-[0.12em] bg-[#1a1a2e] text-[#a78bfa] border border-[#2d2d4a]">
+                        <span className="border border-[#2d2d4a] bg-[#1a1a2e] px-1.5 py-0.5 text-[9px] uppercase tracking-[0.12em] text-[#a78bfa]">
                           Custom
                         </span>
                       )}
@@ -634,7 +784,7 @@ export default function ComponentDrawer({ onInsert, isOpen, onClose }: Component
                       {component.category}
                     </p>
                     {component.description && (
-                      <p className="mt-2 text-xs text-[#8fa1b3] line-clamp-2">
+                      <p className="mt-2 line-clamp-2 text-xs text-[#8fa1b3]">
                         {component.description}
                       </p>
                     )}
@@ -643,7 +793,7 @@ export default function ComponentDrawer({ onInsert, isOpen, onClose }: Component
                         {component.fields.slice(0, 4).map((f) => (
                           <span
                             key={f.name}
-                            className="px-1.5 py-0.5 text-[9px] bg-[#151f30] text-[#607080] border border-[#202632]"
+                            className="border border-[#202632] bg-[#151f30] px-1.5 py-0.5 text-[9px] text-[#607080]"
                           >
                             {f.name}
                           </span>
@@ -657,40 +807,42 @@ export default function ComponentDrawer({ onInsert, isOpen, onClose }: Component
                     )}
                   </div>
 
-                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        openEditor(component);
-                      }}
-                      className="p-2 text-[#7dd3fc] hover:text-[#b6e8ff] transition-colors"
-                      title="Configure & insert"
-                    >
-                      <svg
-                        width="14"
-                        height="14"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
+                  {"isCustom" in component && component.isCustom && (
+                    <div className="flex w-full items-center gap-1 opacity-100 transition-opacity sm:w-auto sm:opacity-0 sm:group-hover:opacity-100">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          openSourceEditor(component);
+                        }}
+                        className="flex-1 p-2 text-[#7dd3fc] transition-colors hover:text-[#b6e8ff] sm:flex-none"
+                        title="Edit component source"
                       >
-                        <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
-                        <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
-                      </svg>
-                    </button>
+                        <svg
+                          className="mx-auto"
+                          width="14"
+                          height="14"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                        >
+                          <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
+                          <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
+                        </svg>
+                      </button>
 
-                    {"isCustom" in component && component.isCustom && (
                       <button
                         type="button"
                         onClick={(e) => {
                           e.stopPropagation();
                           deleteCustomComponent(component.id);
                         }}
-                        className="p-2 text-[#5b3a3a] hover:text-[#ff8f8f] transition-colors"
+                        className="flex-1 p-2 text-[#5b3a3a] transition-colors hover:text-[#ff8f8f] sm:flex-none"
                         title="Delete component"
                       >
                         <svg
+                          className="mx-auto"
                           width="14"
                           height="14"
                           viewBox="0 0 24 24"
@@ -701,14 +853,8 @@ export default function ComponentDrawer({ onInsert, isOpen, onClose }: Component
                           <path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6" />
                         </svg>
                       </button>
-                    )}
-                  </div>
-                </div>
-
-                <div className="absolute inset-0 flex items-center justify-center bg-[#0a0d12]/90 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-                  <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#7dd3fc]">
-                    Drag to editor or click edit
-                  </span>
+                    </div>
+                  )}
                 </div>
               </div>
             ))}
@@ -726,69 +872,29 @@ export default function ComponentDrawer({ onInsert, isOpen, onClose }: Component
             <button
               type="button"
               onClick={() => setShowAddForm(true)}
-              className="w-full border border-dashed border-[#3a4758] px-4 py-3 text-xs font-semibold uppercase tracking-[0.18em] text-[#7d8a99] hover:border-[#7dd3fc] hover:text-[#f5f7fa] transition-colors"
+              className="w-full border border-dashed border-[#3a4758] px-4 py-3 text-xs font-semibold uppercase tracking-[0.18em] text-[#7d8a99] transition-colors hover:border-[#7dd3fc] hover:text-[#f5f7fa]"
             >
               + Add Custom Component
             </button>
           ) : (
             <div className="space-y-3">
-              <div className="flex gap-3">
-                <input
-                  type="text"
-                  value={newLabel}
-                  onChange={(e) => setNewLabel(e.target.value)}
-                  placeholder="Component name"
-                  className="flex-1 border border-[#202632] bg-[#0b0f14] px-3 py-2 text-sm text-white outline-none transition placeholder:text-[#506172] focus:border-[#7dd3fc]"
-                />
-                <input
-                  type="text"
-                  value={newCategory}
-                  onChange={(e) => setNewCategory(e.target.value)}
-                  placeholder="Category"
-                  className="w-28 border border-[#202632] bg-[#0b0f14] px-3 py-2 text-sm text-white outline-none transition placeholder:text-[#506172] focus:border-[#7dd3fc]"
-                />
-              </div>
-
-              <input
-                type="text"
-                value={newDescription}
-                onChange={(e) => setNewDescription(e.target.value)}
-                placeholder="Description (optional)"
-                className="w-full border border-[#202632] bg-[#0b0f14] px-3 py-2 text-sm text-white outline-none transition placeholder:text-[#506172] focus:border-[#7dd3fc]"
-              />
-
-              <div>
-                <p className="mb-1.5 text-[10px] uppercase tracking-[0.14em] text-[#607080]">
-                  Template (use {"{{field}}"}, {"{{#styledField}}"}, {"{{@each array}}...{{/each}}"}
-                  )
-                </p>
-                <div className="border border-[#202632] bg-[#0b0f14]">
-                  <CodeEditor value={newTemplate} onChange={setNewTemplate} minHeight={160} />
-                  <div onMouseDown={(e) => e.preventDefault()}>
-                    <TokenPalette />
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex gap-2">
+              <p className="text-sm text-[#8fa1b3]">
+                Create custom components in the full source editor.
+              </p>
+              <div className="flex flex-col gap-2 sm:flex-row">
                 <button
                   type="button"
                   onClick={addCustomComponent}
-                  disabled={!newLabel.trim() || !newTemplate.trim()}
-                  className="flex-1 border border-[#3a4758] bg-[#f5f7fa] px-4 py-2.5 text-xs font-semibold uppercase tracking-[0.18em] text-[#0a0d12] transition hover:bg-[#dfe6ee] disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex-1 border border-[#3a4758] bg-[#f5f7fa] px-4 py-2.5 text-xs font-semibold uppercase tracking-[0.18em] text-[#0a0d12] transition hover:bg-[#dfe6ee]"
                 >
-                  Save Component
+                  Open Full Editor
                 </button>
                 <button
                   type="button"
                   onClick={() => {
                     setShowAddForm(false);
-                    setNewLabel("");
-                    setNewCategory("Custom");
-                    setNewTemplate("");
-                    setNewDescription("");
                   }}
-                  className="border border-[#3a4758] px-4 py-2.5 text-xs font-semibold uppercase tracking-[0.18em] text-[#c7d0db] transition hover:bg-[#151c25]"
+                  className="w-full border border-[#3a4758] px-4 py-2.5 text-xs font-semibold uppercase tracking-[0.18em] text-[#c7d0db] transition hover:bg-[#151c25] sm:w-auto"
                 >
                   Cancel
                 </button>

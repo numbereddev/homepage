@@ -54,6 +54,15 @@ body {
     overflow-x: hidden;
 }
 
+.preview-body {
+    padding: 24px;
+    background-image: none;
+}
+
+.preview-surface {
+    background-color: var(--background);
+}
+
 ::selection {
     background: var(--accent);
     color: #e8f4ff;
@@ -192,6 +201,7 @@ hr {
 
 .prose-flat {
     color: var(--foreground);
+    max-width: none;
 }
 
 .prose-flat > * + * {
@@ -209,24 +219,24 @@ hr {
 }
 
 .prose-flat h1 {
-    margin-top: 0;
+    /*margin-top: 1rem;*/
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 1rem;
     font-size: clamp(2.4rem, 5vw, 4.75rem);
 }
 
 .prose-flat h2 {
-    margin-top: 3rem;
-    border-top: 1px solid var(--border);
-    padding-top: 1rem;
+    /*margin-top: 1rem;*/
     font-size: clamp(1.7rem, 3vw, 2.4rem);
 }
 
 .prose-flat h3 {
-    margin-top: 2rem;
+    /*margin-top: 1rem;*/
     font-size: clamp(1.2rem, 2vw, 1.5rem);
 }
 
 .prose-flat h4 {
-    margin-top: 1.5rem;
+    /*margin-top: 1rem;*/
     font-size: 1rem;
 }
 
@@ -262,6 +272,7 @@ hr {
 .prose-flat ul,
 .prose-flat ol {
     padding-left: 1.25rem;
+    color: #cad3df;
 }
 
 .prose-flat li + li {
@@ -320,6 +331,10 @@ hr {
 .prose-flat pre.shiki code,
 .prose-flat .shiki code {
     background: transparent !important;
+}
+
+.prose-flat .shiki code {
+    background: #0a1017 !important;
 }
 
 .prose-flat pre.shiki code span {
@@ -392,6 +407,7 @@ hr {
 }
 
 .prose-flat blockquote {
+    margin: 1.5rem 0;
     margin-left: 0;
     border-left: 2px solid var(--accent);
     padding-left: 1rem;
@@ -401,6 +417,7 @@ hr {
 .prose-flat table {
     width: 100%;
     border-collapse: collapse;
+    margin: 1.5rem 0;
     margin-top: 1.5rem;
     font-size: 0.95rem;
 }
@@ -421,6 +438,21 @@ hr {
 .prose-flat td {
     background: rgba(255, 255, 255, 0.01);
     color: #cad3df;
+}
+
+.prose-flat details {
+    margin: 1rem 0;
+}
+
+.prose-flat summary {
+    cursor: pointer;
+    color: #f5f7fa;
+    font-weight: 500;
+}
+
+.prose-flat .styled-field {
+    color: #f5f7fa;
+    font-weight: 600;
 }
 
 .flat-input {
@@ -496,6 +528,33 @@ hr {
     inset: 0;
     pointer-events: none;
     box-shadow: inset 1px 0 0 rgba(59, 130, 196, 0.1);
+}
+
+@media (max-width: 640px) {
+    body {
+        background-size: 28px 28px;
+    }
+
+    .preview-body {
+        padding: 16px;
+    }
+
+    .prose-flat h1 {
+        font-size: 2.2rem;
+    }
+
+    .prose-flat h2 {
+        font-size: 1.55rem;
+    }
+
+    .prose-flat pre {
+        padding-top: 2.2rem;
+    }
+
+    .prose-flat pre[data-language]::before {
+        top: 0.5rem;
+        right: 0.6rem;
+    }
 }
 
 @media (prefers-reduced-motion: reduce) {

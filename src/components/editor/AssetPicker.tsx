@@ -188,55 +188,57 @@ export default function AssetPicker({
     <>
       <div className="fixed inset-0 z-55 bg-black/70 backdrop-blur-sm" onClick={onCloseAction} />
 
-      <div className="fixed inset-8 z-55 flex flex-col overflow-hidden border border-[#202632] bg-[#0a0d12] lg:inset-12 xl:inset-16">
-        <header className="flex items-center justify-between border-b border-[#202632] px-6 py-4">
-          <div>
-            <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-[#7d8a99]">
-              Asset Manager
-            </p>
-            <h2 className="text-lg font-semibold text-white">Select Asset</h2>
-          </div>
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={() => setShowUploadModal(true)}
-              className="border border-[#3a4758] bg-[#f5f7fa] px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-[#0a0d12] transition hover:bg-[#dfe6ee]"
-            >
-              + Upload New
-            </button>
-            <button
-              type="button"
-              onClick={onCloseAction}
-              className="p-2 text-[#607080] hover:text-[#f5f7fa] transition-colors"
-            >
-              <svg
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
+      <div className="fixed inset-2 z-55 flex flex-col overflow-hidden border border-[#202632] bg-[#0a0d12] sm:inset-4 lg:inset-12 xl:inset-16">
+        <header className="border-b border-[#202632] px-4 py-4 sm:px-6">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div className="min-w-0">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-[#7d8a99]">
+                Asset Manager
+              </p>
+              <h2 className="text-base font-semibold text-white sm:text-lg">Select Asset</h2>
+            </div>
+            <div className="flex items-center gap-2 sm:gap-3">
+              <button
+                type="button"
+                onClick={() => setShowUploadModal(true)}
+                className="flex-1 border border-[#3a4758] bg-[#f5f7fa] px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-[#0a0d12] transition hover:bg-[#dfe6ee] sm:flex-none"
               >
-                <path d="M18 6L6 18M6 6l12 12" />
-              </svg>
-            </button>
+                + Upload New
+              </button>
+              <button
+                type="button"
+                onClick={onCloseAction}
+                className="shrink-0 p-2 text-[#607080] hover:text-[#f5f7fa] transition-colors"
+              >
+                <svg
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
+                  <path d="M18 6L6 18M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
           </div>
         </header>
 
-        <div className="flex flex-1 overflow-hidden">
+        <div className="flex flex-1 flex-col overflow-hidden lg:flex-row">
           {/* Asset grid */}
-          <div className="flex-1 overflow-y-auto p-6">
+          <div className="flex-1 overflow-y-auto p-4 sm:p-6">
             {/* Search and filter */}
-            <div className="mb-5 flex flex-col gap-3 sm:flex-row">
+            <div className="mb-5 flex flex-col gap-3">
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search assets..."
-                className="flex-1 border border-[#202632] bg-[#0b0f14] px-4 py-3 text-sm text-white outline-none transition placeholder:text-[#506172] focus:border-[#7dd3fc]"
+                className="w-full min-w-0 border border-[#202632] bg-[#0b0f14] px-4 py-3 text-sm text-white outline-none transition placeholder:text-[#506172] focus:border-[#7dd3fc]"
               />
 
-              <div className="flex border border-[#202632]">
+              <div className="grid grid-cols-2 border border-[#202632] sm:flex">
                 {(["all", "image", "video", "audio", "other"] as const).map((type) => (
                   <button
                     key={type}
@@ -283,7 +285,7 @@ export default function AssetPicker({
                 )}
               </div>
             ) : (
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5">
                 {filteredAssets.map((asset) => {
                   const isSelected = selectedAsset?.id === asset.id;
                   const category = getMimeCategory(asset.mimeType);
@@ -353,7 +355,7 @@ export default function AssetPicker({
 
           {/* Selected asset details */}
           {selectedAsset && (
-            <aside className="w-80 shrink-0 overflow-y-auto border-l border-[#202632] bg-[#0b0f14] p-5">
+            <aside className="max-h-[42vh] shrink-0 overflow-y-auto border-t border-[#202632] bg-[#0b0f14] p-4 sm:p-5 lg:max-h-none lg:w-80 lg:border-l lg:border-t-0">
               <div className="space-y-5">
                 {/* Preview */}
                 <div className="aspect-video overflow-hidden border border-[#202632] bg-[#080b10]">
@@ -473,11 +475,11 @@ export default function AssetPicker({
           )}
         </div>
 
-        <footer className="flex items-center justify-end gap-3 border-t border-[#202632] px-6 py-4">
+        <footer className="flex flex-col gap-3 border-t border-[#202632] px-4 py-4 sm:px-6 sm:flex-row sm:items-center sm:justify-end">
           <button
             type="button"
             onClick={onCloseAction}
-            className="border border-[#202632] px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-[#8fa1b3] transition hover:bg-[#151c25]"
+            className="w-full border border-[#202632] px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-[#8fa1b3] transition hover:bg-[#151c25] sm:w-auto"
           >
             Cancel
           </button>
@@ -486,7 +488,7 @@ export default function AssetPicker({
               type="button"
               onClick={handleAddToGallery}
               disabled={!selectedAsset}
-              className="border border-[#3a4758] px-5 py-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-[#f5f7fa] transition hover:bg-[#151c25] disabled:cursor-not-allowed disabled:opacity-50"
+              className="w-full border border-[#3a4758] px-5 py-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-[#f5f7fa] transition hover:bg-[#151c25] disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
             >
               Add to Gallery
             </button>
@@ -495,7 +497,7 @@ export default function AssetPicker({
             type="button"
             onClick={handleSelect}
             disabled={!selectedAsset}
-            className="border border-[#3a4758] bg-[#f5f7fa] px-5 py-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-[#0a0d12] transition hover:bg-[#dfe6ee] disabled:cursor-not-allowed disabled:opacity-50"
+            className="w-full border border-[#3a4758] bg-[#f5f7fa] px-5 py-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-[#0a0d12] transition hover:bg-[#dfe6ee] disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
           >
             Insert Asset
           </button>

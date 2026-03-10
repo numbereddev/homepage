@@ -110,7 +110,12 @@ export default function AssetUploadModal({
   }, []);
 
   const handleSlugChange = useCallback((value: string) => {
-    setSlug(normalizeSlug(value));
+    setSlug(
+      value
+        .toLowerCase()
+        .replace(/[^a-z0-9\s\-_.]/g, "")
+        .replace(/\s+/g, "-"),
+    );
     setIsAutoSlug(false);
   }, []);
 

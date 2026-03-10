@@ -1,10 +1,21 @@
 "use client";
 
-import { useState, useCallback, useEffect, useMemo } from "react";
+import { useState, useCallback, useMemo } from "react";
 import VisualEditor, { type EditorBlock, blocksToContent, contentToBlocks } from "./VisualEditor";
 import ComponentDrawer from "./ComponentDrawer";
-import AssetPicker, { type AssetData, type InsertType } from "./AssetPicker";
+import AssetPicker, { type AssetData } from "./AssetPicker";
 import PostPreview from "@/components/PostPreview";
+import {
+  SharedConfirmCloseModal,
+  SharedEditorModalHeader,
+  createAssetContent,
+  createEditorBlock,
+  formatEditorTimestampForDisplay,
+  formatEditorTimestampForInput,
+  normalizeEditorSlug,
+  parseEditorInputToTimestamp,
+  useSharedEditorModalKeyboardShortcuts,
+} from "./sharedEditorModal";
 
 type GalleryMedia = {
   url: string;
@@ -38,51 +49,6 @@ type ProjectEditorModalProps = {
 };
 
 type AssetPickerMode = "content" | "gallery";
-
-function normalizeSlug(value: string, options?: { preserveEdgeDashes?: boolean }) {
-  const normalized = value
-    .toLowerCase()
-    .replace(/[^a-z0-9\s-]/g, "")
-    .replace(/\s+/g, "-")
-    .replace(/-+/g, "-");
-
-  if (options?.preserveEdgeDashes) {
-    return normalized;
-  }
-
-  return normalized.replace(/^-|-$/g, "");
-}
-
-function formatTimestampForDisplay(timestamp: number) {
-  try {
-    return new Intl.DateTimeFormat("en", {
-      year: "numeric",
-      month: "short",
-      day: "2-digit",
-      hour: "2-digit",
-      minute: "2-digit",
-    }).format(new Date(timestamp));
-  } catch {
-    return new Date(timestamp).toISOString();
-  }
-}
-
-function formatTimestampForInput(timestamp: number) {
-  const date = new Date(timestamp);
-
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  const hours = String(date.getHours()).padStart(2, "0");
-  const minutes = String(date.getMinutes()).padStart(2, "0");
-
-  return `${year}-${month}-${day}T${hours}:${minutes}`;
-}
-
-function parseInputToTimestamp(value: string) {
-  const parsed = new Date(value).getTime();
-  return Number.isNaN(parsed) ? Date.now() : parsed;
-}
 
 function getGalleryMediaKindFromAsset(asset: AssetData): GalleryMedia["kind"] {
   return asset.mimeType.startsWith("video/") ? "video" : "image";
@@ -257,7 +223,7 @@ export default function ProjectEditorModal({
       commitEditorState((state) => {
         const updates: Partial<ProjectData> = { title: value };
         if (!state.isSlugLocked) {
-          updates.slug = normalizeSlug(value);
+          updates.slug = normalizeEditorSlug(value);
         }
         return {
           ...state,
@@ -270,7 +236,7 @@ export default function ProjectEditorModal({
 
   const updateSlug = useCallback(
     (value: string) => {
-      const normalized = normalizeSlug(value, { preserveEdgeDashes: true });
+      const normalized = normalizeEditorSlug(value, { preserveEdgeDashes: true });
       commitEditorState((state) => ({
         ...state,
         project: { ...state.project, slug: normalized },
@@ -381,7 +347,7 @@ export default function ProjectEditorModal({
     try {
       await onSaveAction({
         ...localProject,
-        slug: normalizeSlug(localProject.slug),
+        slug: normalizeEditorSlug(localProject.slug),
         content,
       });
     } catch (err) {
@@ -416,11 +382,7 @@ export default function ProjectEditorModal({
   const insertComponent = useCallback(
     (snippet: string) => {
       commitEditorState((state) => {
-        const newBlock: EditorBlock = {
-          id: `block-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
-          type: "component",
-          content: snippet,
-        };
+        const newBlock = createEditorBlock("component", snippet);
         const newBlocks = [...state.blocks, newBlock];
         return {
           ...state,
@@ -434,32 +396,10 @@ export default function ProjectEditorModal({
   );
 
   const handleAssetSelect = useCallback(
-    (asset: AssetData, insertType: InsertType) => {
-      let content = "";
-      switch (insertType) {
-        case "markdown":
-          content = `![${asset.slug}](${asset.url})`;
-          break;
-        case "html-img":
-          content = `<img src="${asset.url}" alt="${asset.slug}" />`;
-          break;
-        case "html-video":
-          content = `<video src="${asset.url}" controls></video>`;
-          break;
-        case "html-audio":
-          content = `<audio src="${asset.url}" controls></audio>`;
-          break;
-        case "url-only":
-          content = asset.url;
-          break;
-      }
-      const blockType: EditorBlock["type"] = insertType === "markdown" ? "text" : "html";
+    (asset: AssetData, insertType: Parameters<typeof createAssetContent>[1]) => {
+      const { content, blockType } = createAssetContent(asset, insertType);
       commitEditorState((state) => {
-        const newBlock: EditorBlock = {
-          id: `block-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
-          type: blockType,
-          content,
-        };
+        const newBlock = createEditorBlock(blockType, content);
         const newBlocks = [...state.blocks, newBlock];
         return {
           ...state,
@@ -473,63 +413,17 @@ export default function ProjectEditorModal({
     [commitEditorState],
   );
 
-  useEffect(() => {
-    if (!isOpen) return;
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      const key = e.key.toLowerCase();
-      const isMacRedo = e.metaKey && e.shiftKey && key === "z" && !e.ctrlKey;
-      const isWindowsRedo = e.ctrlKey && e.shiftKey && key === "z" && !e.metaKey;
-      const isUndo =
-        ((e.metaKey && !e.ctrlKey) || (e.ctrlKey && !e.metaKey)) && !e.shiftKey && key === "z";
-      const isSave = ((e.metaKey && !e.ctrlKey) || (e.ctrlKey && !e.metaKey)) && key === "s";
-      const isSaveAndClose =
-        ((e.metaKey && !e.ctrlKey) || (e.ctrlKey && !e.metaKey)) &&
-        !e.shiftKey &&
-        e.key === "Enter" &&
-        showConfirmClose;
-
-      if (isSave) {
-        e.preventDefault();
-        handleSave();
-      } else if (isMacRedo || isWindowsRedo) {
-        e.preventDefault();
-        handleRedo();
-      } else if (isUndo) {
-        e.preventDefault();
-        handleUndo();
-      } else if (isSaveAndClose) {
-        e.preventDefault();
-        handleSave();
-      }
-    };
-
-    const handleEscapeCapture = (e: KeyboardEvent) => {
-      if (e.key !== "Escape") return;
-      e.stopPropagation();
-      if (showConfirmClose) {
-        setShowConfirmClose(false);
-      } else if (!showComponentDrawer && !showAssetPicker) {
-        requestClose();
-      }
-    };
-
-    window.addEventListener("keydown", handleKeyDown);
-    window.addEventListener("keydown", handleEscapeCapture, { capture: true });
-    return () => {
-      window.removeEventListener("keydown", handleKeyDown);
-      window.removeEventListener("keydown", handleEscapeCapture, { capture: true });
-    };
-  }, [
+  useSharedEditorModalKeyboardShortcuts({
     isOpen,
-    handleRedo,
-    handleSave,
-    handleUndo,
-    requestClose,
+    showConfirmClose,
     showComponentDrawer,
     showAssetPicker,
-    showConfirmClose,
-  ]);
+    onSaveAction: handleSave,
+    onUndoAction: handleUndo,
+    onRedoAction: handleRedo,
+    onRequestCloseAction: requestClose,
+    onDismissConfirmCloseAction: () => setShowConfirmClose(false),
+  });
 
   if (!isOpen) return null;
 
@@ -537,148 +431,46 @@ export default function ProjectEditorModal({
 
   return (
     <>
-      <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm" onClick={requestClose} />
+      <div
+        className="fixed inset-0 z-50 overscroll-contain bg-black/70 backdrop-blur-sm"
+        onClick={requestClose}
+      />
 
-      <div className="fixed inset-4 z-50 flex flex-col overflow-hidden border border-[#202632] bg-[#0a0d12] lg:inset-8 xl:inset-12">
-        {/* Header */}
-        <header className="flex items-center justify-between border-b border-[#202632] px-6 py-4">
-          <div className="flex items-center gap-4">
-            <button
-              type="button"
-              onClick={requestClose}
-              className="p-2 text-[#607080] hover:text-[#f5f7fa] transition-colors"
-              title="Close editor"
-              aria-label="Close editor"
-            >
-              <svg
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-              >
-                <path d="M18 6L6 18M6 6l12 12" />
-              </svg>
-            </button>
-            <div>
-              <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-[#7d8a99]">
-                {localProject.originalSlug ? "Editing Project" : "New Project"}
-              </p>
-              <h1 className="text-lg font-semibold text-white truncate max-w-md">
-                {localProject.title || "Untitled project"}
-              </h1>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <div className="flex items-center border border-[#202632]">
-              <button
-                type="button"
-                onClick={handleUndo}
-                disabled={!canUndo}
-                className="px-3 py-2 text-[#607080] transition-colors hover:text-[#f5f7fa] disabled:cursor-not-allowed disabled:opacity-40"
-                title="Undo"
-                aria-label="Undo"
-              >
-                <svg
-                  width="16"
-                  height="16"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                >
-                  <path d="M9 14 4 9l5-5" />
-                  <path d="M4 9h10a6 6 0 0 1 0 12h-1" />
-                </svg>
-              </button>
-              <button
-                type="button"
-                onClick={handleRedo}
-                disabled={!canRedo}
-                className="border-l border-[#202632] px-3 py-2 text-[#607080] transition-colors hover:text-[#f5f7fa] disabled:cursor-not-allowed disabled:opacity-40"
-                title="Redo"
-                aria-label="Redo"
-              >
-                <svg
-                  width="16"
-                  height="16"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                >
-                  <path d="m15 14 5-5-5-5" />
-                  <path d="M20 9H10a6 6 0 0 0 0 12h1" />
-                </svg>
-              </button>
-            </div>
-
-            <div className="flex border border-[#202632]">
-              <button
-                type="button"
-                onClick={() => setActiveTab("editor")}
-                className={[
-                  "px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.16em] transition",
-                  activeTab === "editor"
-                    ? "bg-[#f5f7fa] text-[#0a0d12]"
-                    : "text-[#c7d0db] hover:bg-[#151c25]",
-                ].join(" ")}
-              >
-                Editor
-              </button>
-              <button
-                type="button"
-                onClick={() => setActiveTab("preview")}
-                className={[
-                  "px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.16em] transition",
-                  activeTab === "preview"
-                    ? "bg-[#f5f7fa] text-[#0a0d12]"
-                    : "text-[#c7d0db] hover:bg-[#151c25]",
-                ].join(" ")}
-              >
-                Preview
-              </button>
-            </div>
-
-            <button
-              type="button"
-              onClick={() => {
-                setAssetPickerMode("content");
-                setShowAssetPicker(true);
-              }}
-              className="border border-[#3a4758] px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-[#92d0a6] transition hover:bg-[#151c25]"
-            >
-              Assets
-            </button>
-            <button
-              type="button"
-              onClick={() => setShowComponentDrawer(true)}
-              className="border border-[#3a4758] px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-[#7dd3fc] transition hover:bg-[#151c25]"
-            >
-              Components
-            </button>
-            <button
-              type="button"
-              onClick={handleSave}
-              disabled={isSaving}
-              className="border border-[#3a4758] bg-[#f5f7fa] px-5 py-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-[#0a0d12] transition hover:bg-[#dfe6ee] disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {isSaving ? "Saving..." : "Save Project"}
-            </button>
-            {canDelete && (
+      <div
+        className="fixed inset-2 z-50 flex min-h-0 min-w-0 max-h-[calc(100dvh-1rem)] flex-col overflow-hidden overscroll-contain border border-[#202632] bg-[#0a0d12] sm:inset-4 sm:max-h-[calc(100dvh-2rem)] lg:inset-8 lg:max-h-[calc(100dvh-4rem)] xl:inset-12 xl:max-h-[calc(100dvh-6rem)]"
+        onWheel={(e) => e.stopPropagation()}
+        onTouchMove={(e) => e.stopPropagation()}
+      >
+        <SharedEditorModalHeader
+          label={localProject.originalSlug ? "Editing Project" : "New Project"}
+          title={localProject.title || "Untitled project"}
+          canUndo={canUndo}
+          canRedo={canRedo}
+          activeTab={activeTab}
+          onRequestCloseAction={requestClose}
+          onUndoAction={handleUndo}
+          onRedoAction={handleRedo}
+          onChangeTabAction={setActiveTab}
+          onOpenAssetsAction={() => {
+            setAssetPickerMode("content");
+            setShowAssetPicker(true);
+          }}
+          onOpenComponentsAction={() => setShowComponentDrawer(true)}
+          onSaveAction={handleSave}
+          isSaving={isSaving}
+          deleteButton={
+            canDelete ? (
               <button
                 type="button"
                 onClick={handleDelete}
                 disabled={isDeleting}
-                className="border border-[#5b3030] px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-[#f0b0b0] transition hover:bg-[#1a1010] disabled:cursor-not-allowed disabled:opacity-40"
+                className="col-span-3 border border-[#5b3030] px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-[#f0b0b0] transition hover:bg-[#1a1010] disabled:cursor-not-allowed disabled:opacity-40 sm:col-span-1 sm:tracking-[0.16em]"
               >
                 {isDeleting ? "Deleting..." : "Delete"}
               </button>
-            )}
-          </div>
-        </header>
+            ) : undefined
+          }
+        />
 
         {error && (
           <div className="border-b border-[#5b3030] bg-[#1a1010] px-6 py-3">
@@ -687,12 +479,12 @@ export default function ProjectEditorModal({
         )}
 
         {/* Body */}
-        <div className="flex-1 overflow-hidden">
-          <div className="h-full grid grid-cols-1 xl:grid-cols-[1fr_380px]">
-            <main className="h-full overflow-y-auto">
+        <div className="min-h-0 flex-1 overflow-hidden">
+          <div className="grid h-full min-h-0 grid-cols-1 xl:grid-cols-[1fr_380px]">
+            <main className="h-full min-h-0 overflow-x-hidden overflow-y-auto">
               {activeTab === "editor" ? (
-                <div className="p-6">
-                  <div className="grid gap-4 mb-6 md:grid-cols-2">
+                <div className="p-4 sm:p-6">
+                  <div className="mb-6 grid gap-4 md:grid-cols-2">
                     <label className="block">
                       <span className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.16em] text-[#7d8a99]">
                         Title
@@ -732,9 +524,9 @@ export default function ProjectEditorModal({
                       </span>
                       <input
                         type="datetime-local"
-                        value={formatTimestampForInput(localProject.createdAt)}
+                        value={formatEditorTimestampForInput(localProject.createdAt)}
                         onChange={(e) =>
-                          updateField("createdAt", parseInputToTimestamp(e.target.value))
+                          updateField("createdAt", parseEditorInputToTimestamp(e.target.value))
                         }
                         className="w-full border border-[#202632] bg-[#0b0f14] px-4 py-3 text-sm text-white outline-none transition focus:border-[#7dd3fc]"
                       />
@@ -763,12 +555,12 @@ export default function ProjectEditorModal({
                     </label>
 
                     {/* Open Source toggle */}
-                    <label className="flex items-center gap-3 border border-[#202632] bg-[#0b0f14] px-4 py-3 cursor-pointer">
+                    <label className="flex items-start gap-3 border border-[#202632] bg-[#0b0f14] px-4 py-3 cursor-pointer sm:items-center">
                       <input
                         type="checkbox"
                         checked={localProject.isOpenSource}
                         onChange={(e) => updateField("isOpenSource", e.target.checked)}
-                        className="h-4 w-4 border border-[#3a4758] bg-transparent accent-[#7dd3fc]"
+                        className="mt-0.5 h-4 w-4 shrink-0 border border-[#3a4758] bg-transparent accent-[#7dd3fc] sm:mt-0"
                       />
                       <span className="text-sm text-[#dce3ea]">Open Source</span>
                     </label>
@@ -789,23 +581,23 @@ export default function ProjectEditorModal({
                     )}
 
                     {/* Pinned toggle */}
-                    <label className="flex items-center gap-3 border border-[#202632] bg-[#0b0f14] px-4 py-3 cursor-pointer">
+                    <label className="flex items-start gap-3 border border-[#202632] bg-[#0b0f14] px-4 py-3 cursor-pointer sm:items-center">
                       <input
                         type="checkbox"
                         checked={localProject.pinned}
                         onChange={(e) => updateField("pinned", e.target.checked)}
-                        className="h-4 w-4 border border-[#3a4758] bg-transparent accent-[#7dd3fc]"
+                        className="mt-0.5 h-4 w-4 shrink-0 border border-[#3a4758] bg-transparent accent-[#7dd3fc] sm:mt-0"
                       />
                       <span className="text-sm text-[#dce3ea]">Pin to sidebar</span>
                     </label>
 
                     {/* Published toggle */}
-                    <label className="flex items-center gap-3 border border-[#202632] bg-[#0b0f14] px-4 py-3 cursor-pointer">
+                    <label className="flex items-start gap-3 border border-[#202632] bg-[#0b0f14] px-4 py-3 cursor-pointer sm:items-center">
                       <input
                         type="checkbox"
                         checked={localProject.published}
                         onChange={(e) => updateField("published", e.target.checked)}
-                        className="h-4 w-4 border border-[#3a4758] bg-transparent accent-[#7dd3fc]"
+                        className="mt-0.5 h-4 w-4 shrink-0 border border-[#3a4758] bg-transparent accent-[#7dd3fc] sm:mt-0"
                       />
                       <span className="text-sm text-[#dce3ea]">Publish this project</span>
                     </label>
@@ -813,7 +605,7 @@ export default function ProjectEditorModal({
 
                   {/* Gallery manager */}
                   <div className="mb-6 border border-[#202632] bg-[#0b0f14] p-4">
-                    <div className="mb-3 flex items-center justify-between gap-3">
+                    <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                       <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#7d8a99]">
                         Gallery Media
                       </p>
@@ -823,7 +615,7 @@ export default function ProjectEditorModal({
                           setAssetPickerMode("gallery");
                           setShowAssetPicker(true);
                         }}
-                        className="shrink-0 border border-[#3a4758] px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-[#f5f7fa] transition hover:bg-[#151c25]"
+                        className="w-full shrink-0 border border-[#3a4758] px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-[#f5f7fa] transition hover:bg-[#151c25] sm:w-auto"
                       >
                         + Add from Assets
                       </button>
@@ -833,59 +625,64 @@ export default function ProjectEditorModal({
                         {localProject.gallery.map((item, idx) => (
                           <div
                             key={idx}
-                            className="flex items-center gap-3 border border-[#202632] bg-[#0a0d12] px-3 py-2"
+                            className="flex flex-col gap-3 border border-[#202632] bg-[#0a0d12] px-3 py-3 sm:flex-row sm:items-center"
                           >
-                            <span className="flex-1 min-w-0 text-sm text-[#8fa1b3] truncate">
+                            <span className="min-w-0 flex-1 break-all text-sm text-[#8fa1b3]">
                               {item.url}
                             </span>
 
-                            <div className="flex items-center gap-1">
+                            <div className="flex flex-wrap items-center gap-2 sm:flex-nowrap">
+                              <div className="flex items-center gap-1">
+                                <button
+                                  type="button"
+                                  onClick={() => moveGalleryMedia(idx, "left")}
+                                  disabled={idx === 0}
+                                  className="shrink-0 border border-[#202632] px-2 py-1 text-[10px] text-[#8fa1b3] transition hover:bg-[#151c25] hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
+                                  aria-label="Move gallery media left"
+                                  title="Move left"
+                                >
+                                  ←
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => moveGalleryMedia(idx, "right")}
+                                  disabled={idx === localProject.gallery.length - 1}
+                                  className="shrink-0 border border-[#202632] px-2 py-1 text-[10px] text-[#8fa1b3] transition hover:bg-[#151c25] hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
+                                  aria-label="Move gallery media right"
+                                  title="Move right"
+                                >
+                                  →
+                                </button>
+                              </div>
+
+                              <label className="flex items-center gap-2 text-[10px] uppercase tracking-[0.14em] text-[#8fa1b3]">
+                                <input
+                                  type="checkbox"
+                                  checked={item.kind === "video"}
+                                  onChange={(e) =>
+                                    updateGalleryMediaKind(
+                                      idx,
+                                      e.target.checked ? "video" : "image",
+                                    )
+                                  }
+                                  className="h-4 w-4 border border-[#3a4758] bg-transparent accent-[#7dd3fc]"
+                                />
+                                Video
+                              </label>
+
                               <button
                                 type="button"
-                                onClick={() => moveGalleryMedia(idx, "left")}
-                                disabled={idx === 0}
-                                className="shrink-0 border border-[#202632] px-2 py-1 text-[10px] text-[#8fa1b3] transition hover:bg-[#151c25] hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
-                                aria-label="Move gallery media left"
-                                title="Move left"
+                                onClick={() => removeGalleryImage(idx)}
+                                className="shrink-0 border border-[#202632] px-2 py-1 text-[10px] text-[#8fa1b3] transition hover:border-[#7f3030] hover:text-[#fca5a5]"
                               >
-                                ←
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => moveGalleryMedia(idx, "right")}
-                                disabled={idx === localProject.gallery.length - 1}
-                                className="shrink-0 border border-[#202632] px-2 py-1 text-[10px] text-[#8fa1b3] transition hover:bg-[#151c25] hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
-                                aria-label="Move gallery media right"
-                                title="Move right"
-                              >
-                                →
+                                ✕
                               </button>
                             </div>
-
-                            <label className="flex items-center gap-2 text-[10px] uppercase tracking-[0.14em] text-[#8fa1b3]">
-                              <input
-                                type="checkbox"
-                                checked={item.kind === "video"}
-                                onChange={(e) =>
-                                  updateGalleryMediaKind(idx, e.target.checked ? "video" : "image")
-                                }
-                                className="h-4 w-4 border border-[#3a4758] bg-transparent accent-[#7dd3fc]"
-                              />
-                              Video
-                            </label>
-
-                            <button
-                              type="button"
-                              onClick={() => removeGalleryImage(idx)}
-                              className="shrink-0 border border-[#202632] px-2 py-1 text-[10px] text-[#8fa1b3] transition hover:border-[#7f3030] hover:text-[#fca5a5]"
-                            >
-                              ✕
-                            </button>
                           </div>
                         ))}
                       </div>
                     )}
-                    <div className="flex gap-2">
+                    <div className="flex flex-col gap-2 sm:flex-row">
                       <input
                         value={galleryInput}
                         onChange={(e) => setGalleryInput(e.target.value)}
@@ -896,12 +693,12 @@ export default function ProjectEditorModal({
                           }
                         }}
                         placeholder="Media URL (e.g. /assets/screenshot.png or /assets/demo.mp4)"
-                        className="flex-1 border border-[#202632] bg-[#0f141b] px-3 py-2 text-sm text-white outline-none placeholder:text-[#506172] focus:border-[#5b9fd6]"
+                        className="w-full min-w-0 flex-1 border border-[#202632] bg-[#0f141b] px-3 py-2 text-sm text-white outline-none placeholder:text-[#506172] focus:border-[#5b9fd6]"
                       />
                       <button
                         type="button"
                         onClick={addGalleryImage}
-                        className="shrink-0 border border-[#3a4758] px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-[#f5f7fa] transition hover:bg-[#151c25]"
+                        className="w-full shrink-0 border border-[#3a4758] px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-[#f5f7fa] transition hover:bg-[#151c25] sm:w-auto"
                       >
                         + Add URL
                       </button>
@@ -915,7 +712,7 @@ export default function ProjectEditorModal({
 
                   {/* Content blocks */}
                   <div className="mb-4">
-                    <div className="flex items-center justify-between mb-3">
+                    <div className="mb-3 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                       <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#7d8a99]">
                         Content Blocks
                       </span>
@@ -923,7 +720,7 @@ export default function ProjectEditorModal({
                         Mix Markdown and HTML freely
                       </span>
                     </div>
-                    <div className="pl-10">
+                    <div className="pl-0 sm:pl-10">
                       <VisualEditor
                         blocks={blocks}
                         onChange={handleBlocksChange}
@@ -933,16 +730,16 @@ export default function ProjectEditorModal({
                   </div>
                 </div>
               ) : (
-                <div className="h-full p-6">
-                  <div className="h-full border border-[#202632] bg-[#080b10]">
-                    <PostPreview content={localProject.content} className="w-full h-full" />
+                <div className="h-full p-4 sm:p-6">
+                  <div className="h-full overflow-y-auto border border-[#202632] bg-[#080b10]">
+                    <PostPreview content={localProject.content} className="h-full w-full" />
                   </div>
                 </div>
               )}
             </main>
 
             {/* Sidebar */}
-            <aside className="hidden xl:block border-l border-[#202632] bg-[#0f141b] overflow-y-auto">
+            <aside className="hidden min-h-0 xl:block border-l border-[#202632] bg-[#0f141b] overflow-y-auto">
               <div className="p-5">
                 <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#7d8a99] mb-4">
                   Project Preview Card
@@ -950,7 +747,7 @@ export default function ProjectEditorModal({
                 <div className="border border-[#202632] bg-[#0b0f14] p-4">
                   <div className="flex items-center justify-between gap-3 mb-3">
                     <span className="text-[10px] uppercase tracking-[0.16em] text-[#607080]">
-                      {formatTimestampForDisplay(localProject.createdAt)}
+                      {formatEditorTimestampForDisplay(localProject.createdAt)}
                     </span>
                     <div className="flex gap-1">
                       {localProject.pinned && (
@@ -1052,62 +849,20 @@ export default function ProjectEditorModal({
         </div>
       </div>
 
-      {/* Confirm-close modal */}
-      {showConfirmClose && (
-        <div className="fixed inset-0 z-60 flex items-center justify-center p-4">
-          <div
-            className="absolute inset-0 bg-black/70 backdrop-blur-sm"
-            onClick={() => setShowConfirmClose(false)}
-          />
-          <div className="relative z-10 w-full max-w-md border border-[#3a4758] bg-[#0d1219] shadow-2xl">
-            <div className="border-b border-[#202632] px-5 py-4">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-[#607080]">
-                Unsaved changes
-              </p>
-              <h2 className="mt-1 text-base font-semibold tracking-[-0.03em] text-white">
-                Discard changes and close?
-              </h2>
-            </div>
-            <div className="px-5 py-4">
-              <p className="text-sm leading-relaxed text-[#8fa1b3]">
-                You have unsaved changes to{" "}
-                <span className="font-medium text-white">
-                  {localProject.title || "this project"}
-                </span>
-                . They will be permanently lost if you close without saving.
-              </p>
-            </div>
-            <div className="grid grid-cols-3 gap-px border-t border-[#202632] bg-[#202632]">
-              <button
-                type="button"
-                onClick={() => setShowConfirmClose(false)}
-                className="bg-[#0d1219] px-4 py-3 text-[10px] font-semibold uppercase tracking-[0.16em] text-[#8fa1b3] transition hover:bg-[#131c27] hover:text-white"
-              >
-                Keep editing
-              </button>
-              <button
-                type="button"
-                onClick={handleSave}
-                disabled={isSaving}
-                className="bg-[#f5f7fa] px-4 py-3 text-[10px] font-semibold uppercase tracking-[0.16em] text-[#0a0d12] transition hover:bg-white disabled:opacity-50"
-              >
-                {isSaving ? "Saving…" : "Save & close"}
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setHistoryPast([]);
-                  setHistoryFuture([]);
-                  onCloseAction();
-                }}
-                className="bg-[#0d1219] px-4 py-3 text-[10px] font-semibold uppercase tracking-[0.16em] text-[#c07070] transition hover:bg-[#1a1010] hover:text-[#ffaaaa]"
-              >
-                Discard
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <SharedConfirmCloseModal
+        isOpen={showConfirmClose}
+        title={localProject.title}
+        kindLabel="this project"
+        isSaving={isSaving}
+        onKeepEditingAction={() => setShowConfirmClose(false)}
+        onSaveAndCloseAction={handleSave}
+        onDiscardAction={() => {
+          setHistoryPast([]);
+          setHistoryFuture([]);
+          onCloseAction();
+        }}
+        showShortcutHint={false}
+      />
 
       <ComponentDrawer
         isOpen={showComponentDrawer}

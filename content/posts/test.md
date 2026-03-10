@@ -13,3 +13,5 @@ readingTime: 1
 # New Post
 
 Start writing here.
+
+<div style="background:var(--panel);padding:16px;border:1px solid var(--border)">Hello, World</div>
