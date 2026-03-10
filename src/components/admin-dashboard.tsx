@@ -545,8 +545,6 @@ export default function AdminDashboard({
               )}
             </div>
 
-            <hr className="pb-4" />
-
             {/* ── Assets Manager ── */}
             <AssetsManager initialAssets={initialAssets} />
           </div>
