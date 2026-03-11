@@ -204,6 +204,14 @@ async function createSchema(pool: Pool) {
       INDEX idx_post_reactions_slug (slug)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
   `);
+
+  await pool.query(`
+    ALTER TABLE post_reactions
+    MODIFY emoji VARCHAR(16)
+      CHARACTER SET utf8mb4
+      COLLATE utf8mb4_bin
+      NOT NULL
+  `);
 }
 
 async function seedDefaultAdmin(pool: Pool) {
@@ -850,7 +858,7 @@ export async function toggleReaction(
     `
       SELECT id
       FROM post_reactions
-      WHERE slug = ? AND emoji = ? AND fingerprint = ?
+      WHERE slug = ? AND BINARY emoji = ? AND fingerprint = ?
       LIMIT 1
     `,
     [slug, emoji, fingerprint],
@@ -862,7 +870,7 @@ export async function toggleReaction(
     await pool.query(
       `
         DELETE FROM post_reactions
-        WHERE slug = ? AND emoji = ? AND fingerprint = ?
+        WHERE slug = ? AND BINARY emoji = ? AND fingerprint = ?
       `,
       [slug, emoji, fingerprint],
     );
@@ -884,10 +892,10 @@ export async function getReactionCounts(slug: string): Promise<Record<string, nu
 
   const [rows] = await pool.query<MysqlReactionRow[]>(
     `
-      SELECT emoji, COUNT(*) AS c
+      SELECT BINARY emoji AS emoji, COUNT(*) AS c
       FROM post_reactions
       WHERE slug = ?
-      GROUP BY emoji
+      GROUP BY BINARY emoji
     `,
     [slug],
   );
@@ -899,11 +907,12 @@ export async function getReactionCounts(slug: string): Promise<Record<string, nu
   }
 
   for (const row of rows) {
-    counts[row.emoji] = row.c;
+    counts[row.emoji] = Number(row.c);
   }
 
   return counts;
 }
+
 
 /**
  * Returns which emojis a given fingerprint has already reacted with.
@@ -913,7 +922,7 @@ export async function getMyReactions(slug: string, fingerprint: string): Promise
 
   const [rows] = await pool.query<RowDataPacket[]>(
     `
-      SELECT emoji
+      SELECT BINARY emoji AS emoji
       FROM post_reactions
       WHERE slug = ? AND fingerprint = ?
     `,

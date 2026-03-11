@@ -33,9 +33,8 @@ export async function POST(req: NextRequest, { params }: Params) {
 
   const { added } = await toggleReaction(slug, emoji, fingerprint);
   const stats = await getPostStats(slug, fingerprint);
-  const broadcastStats = await getPostStats(slug);
 
-  broadcast(slug, broadcastStats);
+  broadcast(slug, stats);
 
   return NextResponse.json({ ok: true, added, stats });
 }
