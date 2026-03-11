@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useCallback, useEffect, useState } from "react";
+import { MouseEvent, useCallback, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 
 type GalleryItem = {
@@ -105,6 +105,15 @@ export default function ProjectGallery({ title, items }: ProjectGalleryProps) {
     };
   }, [activeIndex, closeModal, showNext, showPrev]);
 
+  const handleOverlayClick = useCallback(
+    (event: MouseEvent<HTMLDivElement>) => {
+      if (event.target === event.currentTarget) {
+        closeModal();
+      }
+    },
+    [closeModal],
+  );
+
   const modal =
     activeItem == null || activeIndex == null
       ? null
@@ -114,7 +123,7 @@ export default function ProjectGallery({ title, items }: ProjectGalleryProps) {
             role="dialog"
             aria-modal="true"
             aria-label={`${title} gallery viewer`}
-            onClick={closeModal}
+            onClick={handleOverlayClick}
           >
             <button
               type="button"
