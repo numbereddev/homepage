@@ -866,15 +866,15 @@ export async function toggleReaction(
       `,
       [slug, emoji, fingerprint],
     );
-  }
-
-  await pool.query(
-    `
+  } else {
+    await pool.query(
+      `
         INSERT IGNORE INTO post_reactions (slug, emoji, fingerprint)
         VALUES (?, ?, ?)
       `,
-    [slug, emoji, fingerprint],
-  );
+      [slug, emoji, fingerprint],
+    );
+  }
 
   return { added: !existing, counts: await getReactionCounts(slug) };
 }
