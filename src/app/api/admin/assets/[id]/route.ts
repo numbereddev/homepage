@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import fs from "node:fs";
 import path from "node:path";
@@ -145,6 +146,10 @@ export async function PATCH(request: Request, context: RouteContext) {
     return NextResponse.json({ error: "Failed to update asset." }, { status: 500 });
   }
 
+  // Bust caches for both old and new asset paths so the renamed file is served fresh.
+  revalidatePath(`/assets/${asset.slug}${ext}`);
+  revalidatePath(`/assets/${updatedAsset.slug}${ext}`);
+
   return NextResponse.json({
     message: "Asset updated successfully.",
     asset: toAssetResponse(updatedAsset),
@@ -183,6 +188,9 @@ export async function DELETE(_request: Request, context: RouteContext) {
   }
 
   await deleteAsset(assetId);
+
+  // Bust cache for the removed asset path to avoid stale responses.
+  revalidatePath(`/assets/${asset.slug}${ext}`);
 
   return NextResponse.json({
     message: "Asset deleted successfully.",
