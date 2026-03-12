@@ -163,7 +163,7 @@ export default function AssetUploadModal({
     <Modal
       variant="centered"
       zIndex="z-60"
-      panelClassName="border border-[#202632] bg-[#0a0d12]"
+      panelClassName="border border-[#202632] bg-[#0a0d12] w-md"
       onBackdropClickAction={handleClose}
     >
       <header className="flex items-center justify-between border-b border-[#202632] px-6 py-4">
