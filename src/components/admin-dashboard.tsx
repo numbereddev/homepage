@@ -560,7 +560,7 @@ export default function AdminDashboard({
   );
 
   return (
-    <div className="min-h-screen bg-[#080b10] text-[#f5f7fa]">
+    <div className="min-h-screen overflow-x-hidden bg-[#080b10] text-[#f5f7fa]">
       <header className="border-b border-[#202632] bg-[#0a0d12]">
         <div className="mx-auto max-w-7xl px-6 py-4 lg:px-8">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
