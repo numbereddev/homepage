@@ -16,6 +16,7 @@ import {
   parseEditorInputToTimestamp,
   useSharedEditorModalKeyboardShortcuts,
 } from "./sharedEditorModal";
+import { Modal } from "./Modal";
 
 type GalleryMedia = {
   url: string;
@@ -431,15 +432,13 @@ export default function ProjectEditorModal({
 
   return (
     <>
-      <div
-        className="fixed inset-0 z-50 overscroll-contain bg-black/70 backdrop-blur-sm"
-        onClick={requestClose}
-      />
-
-      <div
-        className="fixed inset-2 z-50 flex min-h-0 min-w-0 max-h-[calc(100dvh-1rem)] flex-col overflow-hidden overscroll-contain border border-[#202632] bg-[#0a0d12] sm:inset-4 sm:max-h-[calc(100dvh-2rem)] lg:inset-8 lg:max-h-[calc(100dvh-4rem)] xl:inset-12 xl:max-h-[calc(100dvh-6rem)]"
-        onWheel={(e) => e.stopPropagation()}
-        onTouchMove={(e) => e.stopPropagation()}
+      <Modal
+        variant="full"
+        zIndex="z-50"
+        onBackdropClickAction={requestClose}
+        panelClassName="overscroll-contain"
+        onWheel={(e: React.WheelEvent) => e.stopPropagation()}
+        onTouchMove={(e: React.TouchEvent) => e.stopPropagation()}
       >
         <SharedEditorModalHeader
           label={localProject.originalSlug ? "Editing Project" : "New Project"}
@@ -847,7 +846,7 @@ export default function ProjectEditorModal({
             </aside>
           </div>
         </div>
-      </div>
+      </Modal>
 
       <SharedConfirmCloseModal
         isOpen={showConfirmClose}

@@ -16,6 +16,7 @@ import {
   createAssetContent,
   useSharedEditorModalKeyboardShortcuts,
 } from "./sharedEditorModal";
+import { Modal } from "./Modal";
 
 export type PostData = {
   originalSlug: string;
@@ -351,9 +352,7 @@ export default function PostEditorModal({
 
   return (
     <>
-      <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm" onClick={requestClose} />
-
-      <div className="fixed inset-2 z-50 flex min-h-0 min-w-0 max-h-[calc(100dvh-1rem)] flex-col overflow-hidden border border-[#202632] bg-[#0a0d12] sm:inset-4 sm:max-h-[calc(100dvh-2rem)] lg:inset-8 lg:max-h-[calc(100dvh-4rem)] xl:inset-12 xl:max-h-[calc(100dvh-6rem)]">
+      <Modal variant="full" zIndex="z-50" onBackdropClickAction={requestClose}>
         <SharedEditorModalHeader
           label={localPost.originalSlug ? "Editing Post" : "New Post"}
           title={localPost.title || "Untitled draft"}
@@ -631,7 +630,7 @@ export default function PostEditorModal({
             </aside>
           </div>
         </div>
-      </div>
+      </Modal>
 
       <SharedConfirmCloseModal
         isOpen={showConfirmClose}

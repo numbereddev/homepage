@@ -3,15 +3,11 @@
 import { type ReactNode, useEffect } from "react";
 import type { EditorBlock } from "./VisualEditor";
 import type { AssetData, InsertType } from "./AssetPicker";
+import { Modal } from "./Modal";
 
 let stableBodyScrollLockCount = 0;
 let stableBodyScrollLockY = 0;
 let stablePreviousBodyOverflow = "";
-let stablePreviousBodyPosition = "";
-let stablePreviousBodyTop = "";
-let stablePreviousBodyLeft = "";
-let stablePreviousBodyRight = "";
-let stablePreviousBodyWidth = "";
 let stablePreviousHtmlOverflow = "";
 
 function applyBodyScrollLock() {
@@ -22,19 +18,14 @@ function applyBodyScrollLock() {
 
   stableBodyScrollLockY = window.scrollY;
   stablePreviousBodyOverflow = document.body.style.overflow;
-  stablePreviousBodyPosition = document.body.style.position;
-  stablePreviousBodyTop = document.body.style.top;
-  stablePreviousBodyLeft = document.body.style.left;
-  stablePreviousBodyRight = document.body.style.right;
-  stablePreviousBodyWidth = document.body.style.width;
   stablePreviousHtmlOverflow = document.documentElement.style.overflow;
 
+  // Only set overflow:hidden — do NOT set position:fixed on the body.
+  // Setting position:fixed on body (combined with the pre-existing
+  // overflow-x:hidden rule) causes body to become the containing block for
+  // fixed-positioned descendants in some browsers, which offsets every modal
+  // by the current scroll amount and breaks centring when the page is scrolled.
   document.body.style.overflow = "hidden";
-  document.body.style.position = "fixed";
-  document.body.style.top = `-${stableBodyScrollLockY}px`;
-  document.body.style.left = "0";
-  document.body.style.right = "0";
-  document.body.style.width = "100%";
   document.documentElement.style.overflow = "hidden";
 }
 
@@ -46,11 +37,6 @@ function releaseBodyScrollLock() {
   if (stableBodyScrollLockCount > 0) return;
 
   document.body.style.overflow = stablePreviousBodyOverflow;
-  document.body.style.position = stablePreviousBodyPosition;
-  document.body.style.top = stablePreviousBodyTop;
-  document.body.style.left = stablePreviousBodyLeft;
-  document.body.style.right = stablePreviousBodyRight;
-  document.body.style.width = stablePreviousBodyWidth;
   document.documentElement.style.overflow = stablePreviousHtmlOverflow;
   window.scrollTo(0, stableBodyScrollLockY);
 }
@@ -373,25 +359,21 @@ export function SharedEditorModalLayout({
   children,
 }: LayoutProps) {
   return (
-    <>
-      <div className={overlayClassName ?? "fixed inset-0 z-50 bg-black/70 backdrop-blur-sm"} />
+    <Modal
+      variant="full"
+      zIndex="z-50"
+      overlayClassName={overlayClassName}
+      panelClassName={modalClassName}
+      {...modalEventHandlers}
+    >
+      {error && (
+        <div className="border-b border-[#5b3030] bg-[#1a1010] px-6 py-3">
+          <p className="text-sm text-[#ff8f8f]">{error}</p>
+        </div>
+      )}
 
-      <div
-        className={
-          modalClassName ??
-          "fixed inset-2 z-50 flex min-h-0 min-w-0 max-h-[calc(100dvh-1rem)] flex-col overflow-hidden border border-[#202632] bg-[#0a0d12] sm:inset-4 sm:max-h-[calc(100dvh-2rem)] lg:inset-8 lg:max-h-[calc(100dvh-4rem)] xl:inset-12 xl:max-h-[calc(100dvh-6rem)]"
-        }
-        {...modalEventHandlers}
-      >
-        {error && (
-          <div className="border-b border-[#5b3030] bg-[#1a1010] px-6 py-3">
-            <p className="text-sm text-[#ff8f8f]">{error}</p>
-          </div>
-        )}
-
-        {children}
-      </div>
-    </>
+      {children}
+    </Modal>
   );
 }
 
@@ -419,75 +401,74 @@ export function SharedConfirmCloseModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-60 flex items-center justify-center p-4">
-      <div
-        className="absolute inset-0 bg-black/70 backdrop-blur-sm"
-        onClick={onKeepEditingAction}
-      />
-      <div className="relative z-10 w-full max-w-md border border-[#3a4758] bg-[#0d1219] shadow-2xl">
-        <div className="border-b border-[#202632] px-5 py-4">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-[#607080]">
-            Unsaved changes
-          </p>
-          <h2 className="mt-1 text-base font-semibold tracking-[-0.03em] text-white">
-            Discard changes and close?
-          </h2>
-        </div>
-
-        <div className="px-5 py-4">
-          <p className="text-sm leading-relaxed text-[#8fa1b3]">
-            You have unsaved changes to{" "}
-            <span className="font-medium text-white">{title || kindLabel}</span>. They will be
-            permanently lost if you close without saving.
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 gap-px border-t border-[#202632] bg-[#202632] sm:grid-cols-3">
-          <button
-            type="button"
-            onClick={onKeepEditingAction}
-            className="bg-[#0d1219] px-4 py-3 text-[10px] font-semibold uppercase tracking-[0.16em] text-[#8fa1b3] transition hover:bg-[#131c27] hover:text-white"
-          >
-            Keep editing
-          </button>
-          <button
-            type="button"
-            onClick={onSaveAndCloseAction}
-            disabled={isSaving}
-            className="bg-[#f5f7fa] px-4 py-3 text-[10px] font-semibold uppercase tracking-[0.16em] text-[#0a0d12] transition hover:bg-white disabled:opacity-50"
-            title="Save and close (⌘↵)"
-          >
-            {isSaving ? "Saving…" : "Save & close"}
-          </button>
-          <button
-            type="button"
-            onClick={onDiscardAction}
-            className="bg-[#0d1219] px-4 py-3 text-[10px] font-semibold uppercase tracking-[0.16em] text-[#c07070] transition hover:bg-[#1a1010] hover:text-[#ffaaaa]"
-          >
-            Discard
-          </button>
-        </div>
-
-        {showShortcutHint && (
-          <div className="border-t border-[#202632] px-5 py-3">
-            <p className="text-[10px] text-[#404f60]">
-              <kbd className="mr-0.5 rounded-none border border-[#2a3848] bg-[#0b0f14] px-1.5 py-0.5 font-mono text-[10px] text-[#607080]">
-                ⌘↵
-              </kbd>
-              {" / "}
-              <kbd className="mx-0.5 rounded-none border border-[#2a3848] bg-[#0b0f14] px-1.5 py-0.5 font-mono text-[10px] text-[#607080]">
-                Ctrl↵
-              </kbd>{" "}
-              to save &amp; close ·{" "}
-              <kbd className="ml-0.5 rounded-none border border-[#2a3848] bg-[#0b0f14] px-1.5 py-0.5 font-mono text-[10px] text-[#607080]">
-                Esc
-              </kbd>{" "}
-              to keep editing
-            </p>
-          </div>
-        )}
+    <Modal
+      variant="centered"
+      zIndex="z-60"
+      panelClassName="max-w-md border border-[#3a4758] bg-[#0d1219] shadow-2xl"
+      onBackdropClickAction={onKeepEditingAction}
+    >
+      <div className="border-b border-[#202632] px-5 py-4">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-[#607080]">
+          Unsaved changes
+        </p>
+        <h2 className="mt-1 text-base font-semibold tracking-[-0.03em] text-white">
+          Discard changes and close?
+        </h2>
       </div>
-    </div>
+
+      <div className="px-5 py-4">
+        <p className="text-sm leading-relaxed text-[#8fa1b3]">
+          You have unsaved changes to{" "}
+          <span className="font-medium text-white">{title || kindLabel}</span>. They will be
+          permanently lost if you close without saving.
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 gap-px border-t border-[#202632] bg-[#202632] sm:grid-cols-3">
+        <button
+          type="button"
+          onClick={onKeepEditingAction}
+          className="bg-[#0d1219] px-4 py-3 text-[10px] font-semibold uppercase tracking-[0.16em] text-[#8fa1b3] transition hover:bg-[#131c27] hover:text-white"
+        >
+          Keep editing
+        </button>
+        <button
+          type="button"
+          onClick={onSaveAndCloseAction}
+          disabled={isSaving}
+          className="bg-[#f5f7fa] px-4 py-3 text-[10px] font-semibold uppercase tracking-[0.16em] text-[#0a0d12] transition hover:bg-white disabled:opacity-50"
+          title="Save and close (⌘↵)"
+        >
+          {isSaving ? "Saving…" : "Save & close"}
+        </button>
+        <button
+          type="button"
+          onClick={onDiscardAction}
+          className="bg-[#0d1219] px-4 py-3 text-[10px] font-semibold uppercase tracking-[0.16em] text-[#c07070] transition hover:bg-[#1a1010] hover:text-[#ffaaaa]"
+        >
+          Discard
+        </button>
+      </div>
+
+      {showShortcutHint && (
+        <div className="border-t border-[#202632] px-5 py-3">
+          <p className="text-[10px] text-[#404f60]">
+            <kbd className="mr-0.5 rounded-none border border-[#2a3848] bg-[#0b0f14] px-1.5 py-0.5 font-mono text-[10px] text-[#607080]">
+              ⌘↵
+            </kbd>
+            {" / "}
+            <kbd className="mx-0.5 rounded-none border border-[#2a3848] bg-[#0b0f14] px-1.5 py-0.5 font-mono text-[10px] text-[#607080]">
+              Ctrl↵
+            </kbd>{" "}
+            to save &amp; close ·{" "}
+            <kbd className="ml-0.5 rounded-none border border-[#2a3848] bg-[#0b0f14] px-1.5 py-0.5 font-mono text-[10px] text-[#607080]">
+              Esc
+            </kbd>{" "}
+            to keep editing
+          </p>
+        </div>
+      )}
+    </Modal>
   );
 }
 

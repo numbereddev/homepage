@@ -4,6 +4,7 @@ import { useState, useCallback, useRef } from "react";
 import CodeEditor from "./CodeEditor";
 import TokenPalette from "./TokenPalette";
 import { useSharedEditorModalKeyboardShortcuts } from "./sharedEditorModal";
+import { Modal } from "./Modal";
 import {
   type ComponentDefinition,
   type ComponentInstance,
@@ -430,13 +431,11 @@ export default function ComponentDrawer({ onInsert, isOpen, onClose }: Component
   // Custom component source editor view
   if (editingSourceComponent) {
     return (
-      <>
-        <div
-          className="fixed inset-0 z-40 drawer-backdrop"
-          onClick={() => setEditingSourceComponent(null)}
-        />
-
-        <aside className="fixed inset-2 z-50 flex max-h-[calc(100dvh-1rem)] min-h-0 min-w-0 flex-col overflow-hidden border border-[#202632] bg-[#0a0d12] drawer-panel sm:fixed sm:top-0 sm:right-0 sm:bottom-0 sm:left-auto sm:max-h-none sm:w-full sm:max-w-lg sm:border-l sm:border-y-0 sm:border-r-0">
+      <Modal
+        variant="drawer"
+        zIndex="z-50"
+        onBackdropClickAction={() => setEditingSourceComponent(null)}
+      >
           <div className="flex min-w-0 items-center justify-between gap-3 border-b border-[#202632] px-4 py-4 sm:px-5">
             <div className="min-w-0 flex-1">
               <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-[#7d8a99]">
@@ -526,8 +525,7 @@ export default function ComponentDrawer({ onInsert, isOpen, onClose }: Component
               Cancel
             </button>
           </div>
-        </aside>
-      </>
+        </Modal>
     );
   }
 
@@ -537,13 +535,11 @@ export default function ComponentDrawer({ onInsert, isOpen, onClose }: Component
     const previewHtml = renderInstance(instance, definition);
 
     return (
-      <>
-        <div
-          className="fixed inset-0 z-40 drawer-backdrop"
-          onClick={() => setEditingInstance(null)}
-        />
-
-        <aside className="fixed inset-2 z-50 flex max-h-[calc(100dvh-1rem)] min-h-0 min-w-0 flex-col overflow-hidden border border-[#202632] bg-[#0a0d12] drawer-panel sm:fixed sm:top-0 sm:right-0 sm:bottom-0 sm:left-auto sm:max-h-none sm:w-full sm:max-w-lg sm:border-l sm:border-y-0 sm:border-r-0">
+      <Modal
+        variant="drawer"
+        zIndex="z-50"
+        onBackdropClickAction={() => setEditingInstance(null)}
+      >
           <div className="flex min-w-0 items-center justify-between gap-3 border-b border-[#202632] px-4 py-4 sm:px-5">
             <div className="min-w-0 flex-1">
               <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-[#7d8a99]">
@@ -690,17 +686,18 @@ export default function ComponentDrawer({ onInsert, isOpen, onClose }: Component
               Cancel
             </button>
           </div>
-        </aside>
-      </>
+        </Modal>
     );
   }
 
   // Main component list view
   return (
-    <>
-      <div className="fixed inset-0 z-40 drawer-backdrop" onClick={onClose} />
-
-      <aside className="fixed inset-2 z-50 flex max-h-[calc(100dvh-1rem)] min-h-0 min-w-0 flex-col overflow-hidden border border-[#202632] bg-[#0a0d12] drawer-panel sm:fixed sm:top-0 sm:right-0 sm:bottom-0 sm:left-auto sm:max-h-none sm:w-full sm:max-w-md sm:border-l sm:border-y-0 sm:border-r-0">
+    <Modal
+      variant="drawer"
+      zIndex="z-50"
+      panelClassName="sm:max-w-md"
+      onBackdropClickAction={onClose}
+    >
         <div className="flex min-w-0 items-center justify-between gap-3 border-b border-[#202632] px-4 py-4 sm:px-5">
           <div className="min-w-0 flex-1">
             <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-[#7d8a99]">
@@ -916,8 +913,7 @@ export default function ComponentDrawer({ onInsert, isOpen, onClose }: Component
             </div>
           )}
         </div>
-      </aside>
-    </>
+    </Modal>
   );
 }
 
