@@ -87,7 +87,7 @@ export function Modal({
           onClick={onBackdropClickAction}
         />
         {/* Panel is relative so it stacks above the absolute backdrop */}
-        <div className={`relative z-10 w-full ${panelClassName ?? "max-w-lg"}`} {...rest}>
+        <div className={`relative z-10 ${panelClassName ?? "max-w-lg"}`} {...rest}>
           {children}
         </div>
       </div>
