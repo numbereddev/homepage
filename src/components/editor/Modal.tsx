@@ -97,7 +97,7 @@ export function Modal({
     return (
       <>
         <div
-          className={`fixed inset-0 ${zIndex} drawer-backdrop`}
+          className={overlayClassName ?? `fixed inset-0 ${zIndex} drawer-backdrop`}
           onClick={onBackdropClickAction}
         />
         <aside
@@ -122,7 +122,7 @@ export function Modal({
   return (
     <>
       <div
-        className={`fixed inset-0 ${zIndex} bg-black/70 backdrop-blur-sm`}
+        className={overlayClassName ?? `fixed inset-0 ${zIndex} bg-black/70 backdrop-blur-sm`}
         onClick={onBackdropClickAction}
       />
       <div
