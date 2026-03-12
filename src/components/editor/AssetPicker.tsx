@@ -4,6 +4,7 @@ import Image from "next/image";
 import { useState, useCallback, useEffect } from "react";
 import AssetUploadModal, { type AssetData } from "./AssetUploadModal";
 import { useSharedEditorModalKeyboardShortcuts } from "./sharedEditorModal";
+import { Modal } from "./Modal";
 
 declare global {
   interface Window {
@@ -200,9 +201,7 @@ export default function AssetPicker({
 
   return (
     <>
-      <div className="fixed inset-0 z-55 bg-black/70 backdrop-blur-sm" onClick={onCloseAction} />
-
-      <div className="fixed inset-2 z-55 flex flex-col overflow-hidden border border-[#202632] bg-[#0a0d12] sm:inset-4 lg:inset-12 xl:inset-16">
+      <Modal variant="full" zIndex="z-55" onBackdropClickAction={onCloseAction}>
         <header className="border-b border-[#202632] px-4 py-4 sm:px-6">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div className="min-w-0">
@@ -516,7 +515,7 @@ export default function AssetPicker({
             Insert Asset
           </button>
         </footer>
-      </div>
+      </Modal>
 
       <AssetUploadModal
         isOpen={showUploadModal}

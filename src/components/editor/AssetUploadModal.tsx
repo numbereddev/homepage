@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback, useRef } from "react";
+import { Modal } from "./Modal";
 
 export type AssetData = {
   id: number;
@@ -159,11 +160,13 @@ export default function AssetUploadModal({
   if (!isOpen) return null;
 
   return (
-    <>
-      <div className="fixed inset-0 z-60 bg-black/70 backdrop-blur-sm" onClick={handleClose} />
-
-      <div className="fixed left-1/2 top-1/2 z-60 w-full max-w-lg -translate-x-1/2 -translate-y-1/2 border border-[#202632] bg-[#0a0d12]">
-        <header className="flex items-center justify-between border-b border-[#202632] px-6 py-4">
+    <Modal
+      variant="centered"
+      zIndex="z-60"
+      panelClassName="border border-[#202632] bg-[#0a0d12]"
+      onBackdropClickAction={handleClose}
+    >
+      <header className="flex items-center justify-between border-b border-[#202632] px-6 py-4">
           <div>
             <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-[#7d8a99]">
               Asset Manager
@@ -308,7 +311,6 @@ export default function AssetUploadModal({
             {isUploading ? "Uploading..." : "Upload Asset"}
           </button>
         </footer>
-      </div>
-    </>
+    </Modal>
   );
 }
