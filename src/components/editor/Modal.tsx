@@ -37,8 +37,9 @@ export function ModalOverlay({ className, onClickAction }: ModalOverlayProps) {
 //                because centering is done with flexbox inside a fixed
 //                inset-0 container rather than with percentage + translate,
 //                which can be unreliable when body has position:fixed.
-//   "drawer"   – Panel slides in from the right side of the viewport.
-//                On mobile it fills the screen like a "full" modal.
+//   "drawer"   – Panel is always flush against the right viewport edge (right-0)
+//                with no gap. Full-width on mobile; capped at max-w-lg (by
+//                default) on sm+.
 // ---------------------------------------------------------------------------
 
 export type ModalVariant = "full" | "centered" | "drawer";
@@ -97,16 +98,22 @@ export function Modal({
     return (
       <>
         <div
-          className={overlayClassName ?? `fixed inset-0 ${zIndex} drawer-backdrop`}
+          className={[
+            "fixed inset-0",
+            zIndex,
+            overlayClassName ?? "drawer-backdrop",
+          ].join(" ")}
           onClick={onBackdropClickAction}
         />
+        {/* Always flush against the right edge (right-0) at every breakpoint.
+            On mobile the panel fills the full viewport width; on sm+ it is
+            capped at max-w-lg (or a custom width via panelClassName). */}
         <aside
           className={[
-            "fixed inset-2 flex max-h-[calc(100dvh-1rem)] min-h-0 min-w-0 flex-col",
-            "overflow-hidden border border-[#202632] bg-[#0a0d12]",
+            "fixed top-0 right-0 bottom-0 flex min-h-0 min-w-0 flex-col",
+            "overflow-hidden bg-[#0a0d12]",
             "drawer-panel",
-            "sm:inset-y-0 sm:right-0 sm:left-auto sm:max-h-none sm:w-full",
-            "sm:border-l sm:border-y-0 sm:border-r-0",
+            "w-full border-l border-[#202632]",
             zIndex,
             panelClassName ?? "sm:max-w-lg",
           ].join(" ")}
@@ -122,7 +129,11 @@ export function Modal({
   return (
     <>
       <div
-        className={overlayClassName ?? `fixed inset-0 ${zIndex} bg-black/70 backdrop-blur-sm`}
+        className={[
+          "fixed inset-0",
+          zIndex,
+          overlayClassName ?? "bg-black/70 backdrop-blur-sm",
+        ].join(" ")}
         onClick={onBackdropClickAction}
       />
       <div
