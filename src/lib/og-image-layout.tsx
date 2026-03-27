@@ -50,7 +50,7 @@ export function OgImageLayout({ title, excerpt, category }: OgImageLayoutProps) 
               fontSize: `${EXCERPT_FONT_SIZE}px`,
               fontWeight: 400,
               lineHeight: EXCERPT_LINE_HEIGHT,
-              marginTop: "24px",
+              marginTop: "32px",
               maxWidth: "800px",
               display: "-webkit-box",
               WebkitLineClamp: 3,
