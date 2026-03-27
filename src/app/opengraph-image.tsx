@@ -1,4 +1,5 @@
 import { ImageResponse } from "next/og";
+import { OG_COLORS, OG_DOMAIN } from "@/lib/og";
 
 export const runtime = "nodejs";
 
@@ -16,7 +17,7 @@ export default function OgImage() {
           display: "flex",
           flexDirection: "column",
           justifyContent: "space-between",
-          backgroundColor: "#0a0a0a",
+          backgroundColor: OG_COLORS.background,
           padding: "72px 88px",
         }}
       >
@@ -27,18 +28,18 @@ export default function OgImage() {
               width: "10px",
               height: "10px",
               borderRadius: "50%",
-              backgroundColor: "#5b9fd6",
+              backgroundColor: OG_COLORS.accent,
             }}
           />
           <span
             style={{
-              color: "#91a0b3",
+              color: OG_COLORS.muted,
               fontSize: "22px",
               fontWeight: 500,
               letterSpacing: "0.01em",
             }}
           >
-            numbered.dev
+            {OG_DOMAIN}
           </span>
         </div>
 
@@ -55,7 +56,7 @@ export default function OgImage() {
         >
           <div
             style={{
-              color: "#ffffff",
+              color: OG_COLORS.white,
               fontSize: "76px",
               fontWeight: 700,
               lineHeight: 1.1,
@@ -68,7 +69,7 @@ export default function OgImage() {
           </div>
           <div
             style={{
-              color: "#637287",
+              color: OG_COLORS.muted2,
               fontSize: "28px",
               fontWeight: 400,
               lineHeight: 1.4,
@@ -86,13 +87,13 @@ export default function OgImage() {
         <div style={{ display: "flex", alignItems: "center" }}>
           <span
             style={{
-              color: "#5b9fd6",
+              color: OG_COLORS.accent,
               fontSize: "20px",
               fontWeight: 500,
               letterSpacing: "0.01em",
             }}
           >
-            numbered.dev
+            {OG_DOMAIN}
           </span>
         </div>
       </div>
