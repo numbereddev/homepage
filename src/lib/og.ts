@@ -10,7 +10,7 @@ export const OG_COLORS = {
 } as const;
 
 export const TITLE_FONT_SIZE = 80;
-export const TITLE_LINE_HEIGHT = 1.1;
+export const TITLE_LINE_HEIGHT = 1.3;
 
 export const EXCERPT_FONT_SIZE = 36;
-export const EXCERPT_LINE_HEIGHT = 1.4;
+export const EXCERPT_LINE_HEIGHT = 1.6;
