@@ -34,17 +34,26 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     title: post.title,
     description: post.excerpt,
     openGraph: {
+      siteName: "Numbered Dev",
       title: post.title,
       description: post.excerpt,
       type: "article",
       publishedTime: new Date(post.createdAt).toISOString(),
-      images: post.cover ? [{ url: post.cover, alt: post.title }] : undefined,
+      images: [
+        {
+          url: `/blog/${slug}/opengraph-image`,
+          width: 1200,
+          height: 630,
+          type: "image/png",
+          alt: post.title,
+        },
+      ],
     },
     twitter: {
       card: "summary_large_image",
       title: post.title,
       description: post.excerpt,
-      images: post.cover ? [post.cover] : undefined,
+      images: [`/blog/${slug}/opengraph-image`],
     },
   };
 }

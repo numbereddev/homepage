@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { PageTransition } from "@/components/animations";
@@ -38,7 +38,6 @@ export const metadata: Metadata = {
     type: "website",
     locale: "en_US",
     url: "https://numbered.dev",
-    siteName: "Numbered Dev",
     title: "Numbered Dev",
     description: "Hey, there! I am Numbered Dev, a software engineer, designer and app experience developer.",
   },
@@ -51,6 +50,10 @@ export const metadata: Metadata = {
     index: true,
     follow: true,
   },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#5b9fd6",
 };
 
 export default function RootLayout({
