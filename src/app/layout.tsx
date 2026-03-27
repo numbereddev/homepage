@@ -38,7 +38,6 @@ export const metadata: Metadata = {
     type: "website",
     locale: "en_US",
     url: "https://numbered.dev",
-    siteName: "Numbered Dev",
     title: "Numbered Dev",
     description: "Hey, there! I am Numbered Dev, a software engineer, designer and app experience developer.",
   },
