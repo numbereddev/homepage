@@ -53,6 +53,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
           width: 1200,
           height: 630,
           type: "image/png",
+          alt: project.title,
         },
       ],
     },
