@@ -7,17 +7,11 @@ export const alt = "Blog post";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
-// Title: fontSize 68 × lineHeight 1.1 × 2 lines + 16px for descenders
-const TITLE_FONT_SIZE = 68;
+const TITLE_FONT_SIZE = 80;
 const TITLE_LINE_HEIGHT = 1.1;
-const TITLE_MAX_LINES = 2;
-const TITLE_HEIGHT = Math.ceil(TITLE_FONT_SIZE * TITLE_LINE_HEIGHT * TITLE_MAX_LINES) + 16;
 
-// Excerpt: fontSize 26 × lineHeight 1.4 × 2 lines + 8px for descenders
-const EXCERPT_FONT_SIZE = 26;
+const EXCERPT_FONT_SIZE = 28;
 const EXCERPT_LINE_HEIGHT = 1.4;
-const EXCERPT_MAX_LINES = 2;
-const EXCERPT_HEIGHT = Math.ceil(EXCERPT_FONT_SIZE * EXCERPT_LINE_HEIGHT * EXCERPT_MAX_LINES) + 8;
 
 type Props = {
   params: Promise<{ slug: string }>;
@@ -43,39 +37,8 @@ export default async function OgImage({ params }: Props) {
           padding: "72px 88px",
         }}
       >
-        {/* Top: site brand */}
-        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-          <div
-            style={{
-              width: "10px",
-              height: "10px",
-              borderRadius: "50%",
-              backgroundColor: "#5b9fd6",
-            }}
-          />
-          <span
-            style={{
-              color: "#91a0b3",
-              fontSize: "22px",
-              fontWeight: 500,
-              letterSpacing: "0.01em",
-            }}
-          >
-            numbered.dev
-          </span>
-        </div>
-
-        {/* Middle: title */}
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            flex: 1,
-            justifyContent: "center",
-            paddingTop: "40px",
-            paddingBottom: "40px",
-          }}
-        >
+        {/* Content: title + excerpt */}
+        <div style={{ display: "flex", flexDirection: "column" }}>
           <div
             style={{
               color: "#ffffff",
@@ -83,8 +46,10 @@ export default async function OgImage({ params }: Props) {
               fontWeight: 600,
               lineHeight: TITLE_LINE_HEIGHT,
               maxWidth: "960px",
+              display: "-webkit-box",
+              WebkitLineClamp: 3,
+              WebkitBoxOrient: "vertical",
               overflow: "hidden",
-              height: `${TITLE_HEIGHT}px`,
             }}
           >
             {title}
@@ -98,8 +63,10 @@ export default async function OgImage({ params }: Props) {
                 lineHeight: EXCERPT_LINE_HEIGHT,
                 marginTop: "24px",
                 maxWidth: "800px",
+                display: "-webkit-box",
+                WebkitLineClamp: 3,
+                WebkitBoxOrient: "vertical",
                 overflow: "hidden",
-                height: `${EXCERPT_HEIGHT}px`,
               }}
             >
               {excerpt}
