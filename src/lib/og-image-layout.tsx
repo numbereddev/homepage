@@ -79,7 +79,7 @@ export function OgImageLayout({ title, excerpt, category }: OgImageLayoutProps) 
         <span
           style={{
             color: category ? OG_COLORS.muted2 : OG_COLORS.accent,
-            fontSize: category ? "32px" : "20px",
+            fontSize: "32px",
             fontWeight: category ? 400 : 500,
             letterSpacing: "0.01em",
           }}
