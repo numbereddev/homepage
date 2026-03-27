@@ -38,7 +38,7 @@ export function OgImageLayout({ title, excerpt, category }: OgImageLayoutProps) 
             display: "-webkit-box",
             WebkitLineClamp: 2,
             WebkitBoxOrient: "vertical",
-            overflow: "hidden",
+            // overflow: "hidden",
           }}
         >
           {title}
@@ -55,7 +55,7 @@ export function OgImageLayout({ title, excerpt, category }: OgImageLayoutProps) 
               display: "-webkit-box",
               WebkitLineClamp: 3,
               WebkitBoxOrient: "vertical",
-              overflow: "hidden",
+              // overflow: "hidden",
             }}
           >
             {excerpt}
@@ -68,18 +68,18 @@ export function OgImageLayout({ title, excerpt, category }: OgImageLayoutProps) 
         <span
           style={{
             color: OG_COLORS.accent,
-            fontSize: "20px",
+            fontSize: "32px",
             fontWeight: 500,
             letterSpacing: "0.01em",
           }}
         >
           {category}
         </span>
-        <span style={{ color: OG_COLORS.separator, fontSize: "20px" }}>·</span>
+        <span style={{ color: OG_COLORS.separator, fontSize: "32px" }}>·</span>
         <span
           style={{
             color: OG_COLORS.muted2,
-            fontSize: "20px",
+            fontSize: "32px",
             fontWeight: 400,
           }}
         >
