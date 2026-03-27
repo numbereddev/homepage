@@ -46,7 +46,7 @@ function readSearchParam(value: string | string[] | undefined) {
 
 function AdminLogin({ errorMessage, debugMessage }: AdminLoginProps) {
   return (
-    <div className="min-h-screen bg-[#0a0d12] text-[#f5f7fa]">
+    <div className="min-h-screen overflow-x-hidden bg-[#0a0d12] text-[#f5f7fa]">
       <div className="mx-auto flex min-h-screen max-w-7xl items-center justify-center px-5 py-10 sm:px-8">
         <div className="grid w-full max-w-5xl gap-px border border-[#202632] bg-[#202632] lg:grid-cols-[1.1fr_0.9fr]">
           <section className="bg-[#0f141b] p-8 sm:p-10">
