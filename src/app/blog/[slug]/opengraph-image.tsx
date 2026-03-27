@@ -7,17 +7,17 @@ export const alt = "Blog post";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
-// Title: fontSize 68 × lineHeight 1.1 × 2 lines ≈ 150px
+// Title: fontSize 68 × lineHeight 1.1 × 2 lines + 16px for descenders
 const TITLE_FONT_SIZE = 68;
 const TITLE_LINE_HEIGHT = 1.1;
 const TITLE_MAX_LINES = 2;
-const TITLE_HEIGHT = Math.ceil(TITLE_FONT_SIZE * TITLE_LINE_HEIGHT * TITLE_MAX_LINES);
+const TITLE_HEIGHT = Math.ceil(TITLE_FONT_SIZE * TITLE_LINE_HEIGHT * TITLE_MAX_LINES) + 16;
 
-// Excerpt: fontSize 26 × lineHeight 1.4 × 2 lines ≈ 73px
+// Excerpt: fontSize 26 × lineHeight 1.4 × 2 lines + 8px for descenders
 const EXCERPT_FONT_SIZE = 26;
 const EXCERPT_LINE_HEIGHT = 1.4;
 const EXCERPT_MAX_LINES = 2;
-const EXCERPT_HEIGHT = Math.ceil(EXCERPT_FONT_SIZE * EXCERPT_LINE_HEIGHT * EXCERPT_MAX_LINES);
+const EXCERPT_HEIGHT = Math.ceil(EXCERPT_FONT_SIZE * EXCERPT_LINE_HEIGHT * EXCERPT_MAX_LINES) + 8;
 
 type Props = {
   params: Promise<{ slug: string }>;
@@ -80,7 +80,7 @@ export default async function OgImage({ params }: Props) {
             style={{
               color: "#ffffff",
               fontSize: `${TITLE_FONT_SIZE}px`,
-              fontWeight: 700,
+              fontWeight: 600,
               lineHeight: TITLE_LINE_HEIGHT,
               maxWidth: "960px",
               overflow: "hidden",
