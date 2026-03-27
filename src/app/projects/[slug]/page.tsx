@@ -205,7 +205,7 @@ export default async function ProjectDetailPage({ params }: PageProps) {
             </AnimatedDiv>
           )}
 
-          <div className={`mt-12 border-t ${t.color.border} pt-8`}>
+          <div className={galleryItems.length > 0 ? `mt-12 border-t ${t.color.border} pt-8` : ""}>
             <div data-share-scope>
               <AnimatedDiv delay={140} duration={900} distance={20}>
                 <div
