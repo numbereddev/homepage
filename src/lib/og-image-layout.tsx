@@ -65,7 +65,7 @@ export function OgImageLayout({ title, excerpt, category }: OgImageLayoutProps) 
           style={{
             color: OG_COLORS.white,
             fontSize: `${TITLE_FONT_SIZE}px`,
-            fontWeight: 700,
+            fontWeight: 600,
             lineHeight: TITLE_LINE_HEIGHT,
             maxWidth: "960px",
             overflow: "hidden",
