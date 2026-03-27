@@ -34,6 +34,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     title: post.title,
     description: post.excerpt,
     openGraph: {
+      siteName: "Numbered Dev",
       title: post.title,
       description: post.excerpt,
       type: "article",
