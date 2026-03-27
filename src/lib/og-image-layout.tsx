@@ -10,7 +10,7 @@ import {
 type OgImageLayoutProps = {
   title: string;
   excerpt: string;
-  category: string;
+  category?: string;
 };
 
 export function OgImageLayout({ title, excerpt, category }: OgImageLayoutProps) {
@@ -35,10 +35,8 @@ export function OgImageLayout({ title, excerpt, category }: OgImageLayoutProps) 
             fontWeight: 600,
             lineHeight: TITLE_LINE_HEIGHT,
             maxWidth: "960px",
-            display: "-webkit-box",
-            WebkitLineClamp: 2,
-            WebkitBoxOrient: "vertical",
-            // overflow: "hidden",
+            lineClamp: 2,
+            overflow: "hidden",
           }}
         >
           {title}
@@ -52,10 +50,8 @@ export function OgImageLayout({ title, excerpt, category }: OgImageLayoutProps) 
               lineHeight: EXCERPT_LINE_HEIGHT,
               marginTop: "32px",
               maxWidth: "800px",
-              display: "-webkit-box",
-              WebkitLineClamp: 3,
-              WebkitBoxOrient: "vertical",
-              // overflow: "hidden",
+              lineClamp: 3,
+              overflow: "hidden",
             }}
           >
             {excerpt}
@@ -65,22 +61,27 @@ export function OgImageLayout({ title, excerpt, category }: OgImageLayoutProps) 
 
       {/* Bottom: category + URL */}
       <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+        {category && (
+          <>
+            <span
+              style={{
+                color: OG_COLORS.accent,
+                fontSize: "32px",
+                fontWeight: 500,
+                letterSpacing: "0.01em",
+              }}
+            >
+              {category}
+            </span>
+            <span style={{ color: OG_COLORS.separator, fontSize: "32px" }}>·</span>
+          </>
+        )}
         <span
           style={{
-            color: OG_COLORS.accent,
-            fontSize: "32px",
-            fontWeight: 500,
+            color: category ? OG_COLORS.muted2 : OG_COLORS.accent,
+            fontSize: category ? "32px" : "20px",
+            fontWeight: category ? 400 : 500,
             letterSpacing: "0.01em",
-          }}
-        >
-          {category}
-        </span>
-        <span style={{ color: OG_COLORS.separator, fontSize: "32px" }}>·</span>
-        <span
-          style={{
-            color: OG_COLORS.muted2,
-            fontSize: "32px",
-            fontWeight: 400,
           }}
         >
           {OG_DOMAIN}

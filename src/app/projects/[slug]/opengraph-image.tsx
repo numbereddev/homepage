@@ -21,6 +21,6 @@ export default async function OgImage({ params }: Props) {
 
   return new ImageResponse(
     <OgImageLayout title={title} excerpt={excerpt} category="Projects" />,
-    { width: 1200, height: 630 },
+    size,
   );
 }
