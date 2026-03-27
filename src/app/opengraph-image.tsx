@@ -1,16 +1,11 @@
 import { ImageResponse } from "next/og";
+import { OG_COLORS, OG_DOMAIN, TITLE_FONT_SIZE, TITLE_LINE_HEIGHT, EXCERPT_FONT_SIZE, EXCERPT_LINE_HEIGHT } from "@/lib/og";
 
 export const runtime = "nodejs";
 
 export const alt = "Numbered Dev";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
-
-const TITLE_FONT_SIZE = 84;
-const TITLE_LINE_HEIGHT = 1.1;
-
-const EXCERPT_FONT_SIZE = 30;
-const EXCERPT_LINE_HEIGHT = 1.4;
 
 export default function OgImage() {
   return new ImageResponse(
@@ -22,7 +17,7 @@ export default function OgImage() {
           display: "flex",
           flexDirection: "column",
           justifyContent: "space-between",
-          backgroundColor: "#0a0a0a",
+          backgroundColor: OG_COLORS.background,
           padding: "72px 88px",
         }}
       >
@@ -30,13 +25,13 @@ export default function OgImage() {
         <div style={{ display: "flex", flexDirection: "column" }}>
           <div
             style={{
-              color: "#ffffff",
+              color: OG_COLORS.white,
               fontSize: `${TITLE_FONT_SIZE}px`,
               fontWeight: 600,
               lineHeight: TITLE_LINE_HEIGHT,
               maxWidth: "960px",
               display: "-webkit-box",
-              WebkitLineClamp: 3,
+              WebkitLineClamp: 2,
               WebkitBoxOrient: "vertical",
               overflow: "hidden",
             }}
@@ -45,7 +40,7 @@ export default function OgImage() {
           </div>
           <div
             style={{
-              color: "#637287",
+              color: OG_COLORS.muted2,
               fontSize: `${EXCERPT_FONT_SIZE}px`,
               fontWeight: 400,
               lineHeight: EXCERPT_LINE_HEIGHT,
@@ -65,13 +60,13 @@ export default function OgImage() {
         <div style={{ display: "flex", alignItems: "center" }}>
           <span
             style={{
-              color: "#5b9fd6",
+              color: OG_COLORS.accent,
               fontSize: "20px",
               fontWeight: 500,
               letterSpacing: "0.01em",
             }}
           >
-            numbered.dev
+            {OG_DOMAIN}
           </span>
         </div>
       </div>
