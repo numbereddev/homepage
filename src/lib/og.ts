@@ -12,5 +12,5 @@ export const OG_COLORS = {
 export const TITLE_FONT_SIZE = 80;
 export const TITLE_LINE_HEIGHT = 1.1;
 
-export const EXCERPT_FONT_SIZE = 28;
+export const EXCERPT_FONT_SIZE = 32;
 export const EXCERPT_LINE_HEIGHT = 1.4;
