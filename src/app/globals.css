@@ -270,9 +270,19 @@ hr {
     text-decoration-color: rgba(91, 159, 214, 0.75);
 }
 
+.prose-flat ul {
+  list-style-type: disc;
+}
+
+.prose-flat ol {
+  list-style-type: decimal;
+}
+
 .prose-flat ul,
 .prose-flat ol {
     padding-left: 1.25rem;
+    margin-top: 1.25rem;
+    margin-bottom: 1.25rem;
     color: #cad3df;
 }
 
@@ -577,14 +587,6 @@ hr {
     :where(a, button, summary):active {
         transform: none;
     }
-}
-
-article ul {
-    list-style: inside;
-}
-
-article ol {
-    list-style: revert;
 }
 
 
