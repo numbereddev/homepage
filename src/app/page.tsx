@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { cookies } from "next/headers";
-import { getAllPosts, getPinnedProjects } from "@/lib/content";
+import { getAllPosts, getAllProjects, getPinnedProjects } from "@/lib/content";
 import { getAllLinks, getAdminSession } from "@/lib/db";
 import { ADMIN_SESSION_COOKIE_NAME } from "@/lib/auth";
 import { formatTimestamp } from "@/lib/utils";
@@ -43,6 +43,7 @@ const WORK_ITEMS = [
 export default async function HomePage() {
   const latestPosts = getAllPosts(false).slice(0, 4);
   const pinnedProjects = getPinnedProjects().slice(0, 3);
+  const projectCount = getAllProjects(false).length;
   const links = await getAllLinks();
 
   const cookieStore = await cookies();
@@ -83,7 +84,7 @@ export default async function HomePage() {
               Read Posts
             </Link>
             <Link href="/projects" className={t.btn.ghost}>
-              My Projects
+              My Projects ({projectCount})
             </Link>
             <a href="#work" className={t.btn.ghost}>
               View Focus
