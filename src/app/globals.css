@@ -579,4 +579,12 @@ hr {
     }
 }
 
+article ul {
+    list-style: inside;
+}
+
+article ol {
+    list-style: revert;
+}
+
 
