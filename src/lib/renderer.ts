@@ -82,7 +82,7 @@ export async function renderContent(content: string): Promise<string> {
 
   // Configure marked
   marked.setOptions({
-    breaks: true,
+    breaks: false,
     gfm: true,
   });
 
