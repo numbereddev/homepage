@@ -231,6 +231,27 @@ hr {
     font-size: clamp(1.7rem, 3vw, 2.4rem);
 }
 
+.prose-flat input[type="checkbox"] {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 14px;
+    height: 14px;
+    background-color: var(--accent);
+    border-radius: 3px !important;
+    display: inline-grid;
+    place-content: center;
+    position: relative;
+    margin-right: 3px;
+}
+
+.prose-flat input[type="checkbox"]:checked::after {
+    content: "";
+    width: 10px;
+    height: 10px;
+    background-color: #333;
+    clip-path: polygon(14% 44%, 0 65%, 50% 100%, 100% 16%, 80% 0%, 43% 62%);
+}
+
 .prose-flat h3 {
     /*margin-top: 1rem;*/
     font-size: clamp(1.2rem, 2vw, 1.5rem);
