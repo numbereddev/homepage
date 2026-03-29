@@ -599,7 +599,7 @@ export default function AdminDashboard({
 
       <main className="mx-auto max-w-7xl px-6 py-8 lg:px-8">
         <div className="grid gap-8 lg:grid-cols-[1fr_320px]">
-          <div>
+          <div className="min-w-0">
             {/* Tab switcher: Posts / Projects */}
             <div className="mb-6 flex border border-[#202632]">
               <button
@@ -705,13 +705,13 @@ export default function AdminDashboard({
                               {post.excerpt}
                             </p>
                             <div className="mt-3 flex flex-wrap items-center gap-3 text-[11px] text-[#607080]">
-                              <span>{formatTimestamp(post.createdAt)}</span>
-                              <span>·</span>
-                              <span className="text-[#7dd3fc]">/blog/{post.slug}</span>
+                              <span className="shrink-0">{formatTimestamp(post.createdAt)}</span>
+                              <span className="shrink-0">·</span>
+                              <span className="min-w-0 max-w-full truncate text-[#7dd3fc]">/blog/{post.slug}</span>
                               {post.tags.length > 0 && (
                                 <>
-                                  <span>·</span>
-                                  <span>{post.tags.slice(0, 3).join(", ")}</span>
+                                  <span className="shrink-0">·</span>
+                                  <span className="min-w-0 max-w-full truncate">{post.tags.slice(0, 3).join(", ")}</span>
                                 </>
                               )}
                             </div>
@@ -793,19 +793,19 @@ export default function AdminDashboard({
                               {proj.excerpt}
                             </p>
                             <div className="mt-3 flex flex-wrap items-center gap-3 text-[11px] text-[#607080]">
-                              <span>{formatTimestamp(proj.createdAt)}</span>
-                              <span>·</span>
-                              <span className="text-[#7dd3fc]">/projects/{proj.slug}</span>
+                              <span className="shrink-0">{formatTimestamp(proj.createdAt)}</span>
+                              <span className="shrink-0">·</span>
+                              <span className="min-w-0 max-w-full truncate text-[#7dd3fc]">/projects/{proj.slug}</span>
                               {proj.isOpenSource && (
                                 <>
-                                  <span>·</span>
-                                  <span className="text-[#92d0a6]">Open Source</span>
+                                  <span className="shrink-0">·</span>
+                                  <span className="shrink-0 text-[#92d0a6]">Open Source</span>
                                 </>
                               )}
                               {proj.pinned && (
                                 <>
-                                  <span>·</span>
-                                  <span className="text-[#7dd3fc]">Featured</span>
+                                  <span className="shrink-0">·</span>
+                                  <span className="shrink-0 text-[#7dd3fc]">Featured</span>
                                 </>
                               )}
                             </div>
@@ -841,7 +841,7 @@ export default function AdminDashboard({
             <AssetsManager initialAssets={initialAssets} />
           </div>
 
-          <aside className="space-y-6">
+          <aside className="min-w-0 space-y-6">
             {/* ── Links / Linktree ── */}
             <div className="border border-[#202632] bg-[#0b0f14]">
               <div className="border-b border-[#202632] px-5 py-4">
