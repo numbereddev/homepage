@@ -80,7 +80,7 @@ export function Modal({
     // viewport, regardless of scroll position or body transforms.
     // flex + items-center + justify-center then centres the panel inside it.
     return (
-      <div className={`fixed inset-0 ${zIndex} flex items-center justify-center p-4`}>
+      <div className={`fixed inset-0 ${zIndex} flex items-center justify-center p-4 h-screen`}>
         {/* Backdrop lives inside the wrapper so it absorbs click events */}
         <div
           className={overlayClassName ?? "absolute inset-0 bg-black/70 backdrop-blur-sm"}
