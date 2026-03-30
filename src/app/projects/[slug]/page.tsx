@@ -218,10 +218,7 @@ export default async function ProjectDetailPage({ params }: PageProps) {
         </article>
 
         {/* ── Sidebar ── */}
-        <AnimatedDiv
-          delay={160}
-          duration={780}
-          distance={24}
+        <div
           className="space-y-5 px-5 py-6 sm:px-6"
         >
           {/* Engagement */}
@@ -309,7 +306,7 @@ export default async function ProjectDetailPage({ params }: PageProps) {
               )}
             </Panel>
           </AnimatedDiv>
-        </AnimatedDiv>
+        </div>
       </div>
     </PageShell>
   );
