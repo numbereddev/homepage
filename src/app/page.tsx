@@ -18,12 +18,12 @@ import {
 const WORK_ITEMS = [
   {
     id: "01",
-    title: "Product Engineering",
-    description: "I build interfaces and systems that stay clear under real-world complexity.",
+    title: "Systems Engineering",
+    description: "I design (distributed) systems that stay available, and fast, even under real-world circumstances.",
   },
   {
     id: "02",
-    title: "Backend development",
+    title: "Backend Development",
     description:
       "Scalable backend systems, APIs, and infrastructure that keep products reliable as they grow.",
   },
@@ -31,12 +31,12 @@ const WORK_ITEMS = [
     id: "03",
     title: "Frontend Systems",
     description:
-      "Design systems, application architecture, and clean experiences with strong structure.",
+      "I design clean and easy-to-use user interfaces and experiences with strong structure.",
   },
   {
     id: "04",
     title: "Technical Writing",
-    description: "I write to make architecture, tradeoffs, and implementation details legible.",
+    description: "I document architecture, source code, design trade-offs, and implementation details while staying easy to understand.",
   },
 ];
 
