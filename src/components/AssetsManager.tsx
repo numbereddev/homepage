@@ -219,6 +219,7 @@ export default function AssetsManager({ initialAssets }: AssetsManagerProps) {
             {filteredAssets.map((asset) => {
               const isEditing = editingAsset?.id === asset.id;
               const category = getMimeCategory(asset.mimeType);
+              asset.slug = asset.slug.replace(/\.[^.]+$/, "");
 
               return (
                 <div
