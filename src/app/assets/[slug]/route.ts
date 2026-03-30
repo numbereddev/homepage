@@ -4,7 +4,7 @@ import path from "node:path";
 import { Readable } from "node:stream";
 
 import { getAssetBySlug } from "@/lib/db";
-import { normalizeSlug } from "@/lib/content";
+import { normalizeSlug } from "@/lib/slugs";
 
 const ASSETS_DIR = path.join(process.cwd(), "public", "assets");
 

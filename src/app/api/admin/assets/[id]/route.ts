@@ -16,7 +16,7 @@ import {
 
 import { ADMIN_SESSION_COOKIE_NAME } from "@/lib/auth";
 import { getFileExtension } from "@/lib/assets";
-import { normalizeSlug } from "@/lib/content";
+import { normalizeSlug } from "@/lib/slugs";
 
 const ASSETS_DIR = path.join(process.cwd(), "public", "assets");
 

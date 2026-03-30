@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { useState, useCallback } from "react";
 import AssetUploadModal, { type AssetData } from "./editor/AssetUploadModal";
-import { normalizeSlug } from "@/lib/content";
+import { normalizeSlug } from "@/lib/slugs";
 
 type AssetsManagerProps = {
   initialAssets: AssetData[];

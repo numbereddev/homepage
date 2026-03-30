@@ -6,10 +6,10 @@ import {
   deleteProject,
   getAllProjects,
   getProjectBySlug,
-  normalizeSlug,
   saveProject,
   type ProjectMeta,
 } from "@/lib/content";
+import { normalizeSlug } from "@/lib/slugs";
 import { clearExpiredAdminSessions, getAdminSession } from "@/lib/db";
 import { ADMIN_SESSION_COOKIE_NAME } from "@/lib/auth";
 

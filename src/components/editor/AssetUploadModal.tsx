@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useRef } from "react";
 import { Modal } from "./Modal";
-import { normalizeSlug } from "@/lib/content";
+import { normalizeSlug } from "@/lib/slugs";
 
 export type AssetData = {
   id: number;

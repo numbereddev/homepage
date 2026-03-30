@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import matter from "gray-matter";
 import { renderContent, calculateReadingTime } from "./renderer";
+import { normalizeSlug } from "./slugs";
 
 // ---------------------------------------------------------------------------
 // Post types
@@ -107,19 +108,7 @@ function isMarkdownFile(fileName: string) {
   return fileName.endsWith(".md");
 }
 
-export function normalizeSlug(value: string) {
-  return value
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9\s-]/g, "")
-    .replace(/\s+/g, "-")
-    .replace(/-+/g, "-")
-    .replace(/^-|-$/g, "");
-}
-
-export function slugFromTitle(title: string) {
-  return normalizeSlug(title);
-}
+export { normalizeSlug, slugFromTitle } from "./slugs";
 
 export function getPostPath(slug: string) {
   return path.join(CONTENT_DIR, `${normalizeSlug(slug)}.md`);
