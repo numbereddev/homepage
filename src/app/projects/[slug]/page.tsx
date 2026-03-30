@@ -207,12 +207,10 @@ export default async function ProjectDetailPage({ params }: PageProps) {
 
           <div className={galleryItems.length > 0 ? `mt-12 border-t ${t.color.border} pt-8` : ""}>
             <div data-share-scope>
-              <AnimatedDiv delay={140} duration={900} distance={0}>
-                <div
-                  className="prose-flat max-w-none"
-                  dangerouslySetInnerHTML={{ __html: project.html }}
-                />
-              </AnimatedDiv>
+              <div
+                className="prose-flat max-w-none"
+                dangerouslySetInnerHTML={{ __html: project.html }}
+              />
             </div>
           </div>
 
