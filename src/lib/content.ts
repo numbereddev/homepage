@@ -2,7 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import matter from "gray-matter";
 import { renderContent, calculateReadingTime } from "./renderer";
-import { normalizePostSlug } from "./slugs";
+import { normalizePostSlug as normalizeSlug } from "./slugs";
 
 // ---------------------------------------------------------------------------
 // Post types
@@ -86,11 +86,50 @@ export type ProjectInput = {
 };
 
 // ---------------------------------------------------------------------------
+// Custom component types
+// ---------------------------------------------------------------------------
+
+export type StoredComponentField = {
+  name: string;
+  type: "text" | "styled" | "array";
+  defaultValue: string;
+  label?: string;
+};
+
+export type StoredComponentArray = {
+  name: string;
+  itemTemplate: string;
+  items: Record<string, string>[];
+  itemFields: StoredComponentField[];
+};
+
+export type StoredComponentRecord = {
+  id: string;
+  label: string;
+  category: string;
+  description?: string;
+  fields: StoredComponentField[];
+  arrays: StoredComponentArray[];
+  source: string;
+};
+
+export type StoredComponentInput = {
+  id: string;
+  label: string;
+  category: string;
+  description?: string;
+  fields?: StoredComponentField[];
+  arrays?: StoredComponentArray[];
+  source: string;
+};
+
+// ---------------------------------------------------------------------------
 // Directories
 // ---------------------------------------------------------------------------
 
 const CONTENT_DIR = path.join(process.cwd(), "content", "posts");
 const PROJECTS_DIR = path.join(process.cwd(), "content", "projects");
+const COMPONENTS_DIR = path.join(process.cwd(), "content", "components");
 
 function ensureContentDirectory() {
   if (!fs.existsSync(CONTENT_DIR)) {
@@ -104,6 +143,12 @@ function ensureProjectsDirectory() {
   }
 }
 
+function ensureComponentsDirectory() {
+  if (!fs.existsSync(COMPONENTS_DIR)) {
+    fs.mkdirSync(COMPONENTS_DIR, { recursive: true });
+  }
+}
+
 function isMarkdownFile(fileName: string) {
   return fileName.endsWith(".md");
 }
@@ -111,11 +156,15 @@ function isMarkdownFile(fileName: string) {
 export { normalizePostSlug as normalizeSlug, slugFromTitle } from "./slugs";
 
 export function getPostPath(slug: string) {
-  return path.join(CONTENT_DIR, `${normalizePostSlug(slug)}.md`);
+  return path.join(CONTENT_DIR, `${normalizeSlug(slug)}.md`);
 }
 
 export function getProjectPath(slug: string) {
-  return path.join(PROJECTS_DIR, `${normalizePostSlug(slug)}.md`);
+  return path.join(PROJECTS_DIR, `${normalizeSlug(slug)}.md`);
+}
+
+export function getComponentPath(id: string) {
+  return path.join(COMPONENTS_DIR, `${normalizeSlug(id)}.json`);
 }
 
 function sortPostsByDate(posts: PostMeta[]) {
@@ -251,7 +300,7 @@ export async function getPostBySlug(
 ): Promise<Post | null> {
   ensureContentDirectory();
 
-  const normalizedSlug = normalizePostSlug(slug);
+  const normalizedSlug = normalizeSlug(slug);
   const fullPath = getPostPath(normalizedSlug);
 
   if (!fs.existsSync(fullPath)) {
@@ -277,7 +326,7 @@ export async function getPostBySlug(
 export function savePost(input: PostInput) {
   ensureContentDirectory();
 
-  const slug = normalizePostSlug(input.slug || input.title);
+  const slug = normalizeSlug(input.slug || input.title);
   const filePath = getPostPath(slug);
 
   // Calculate reading time if not provided
@@ -415,7 +464,7 @@ export async function getProjectBySlug(
 ): Promise<Project | null> {
   ensureProjectsDirectory();
 
-  const normalizedSlug = normalizePostSlug(slug);
+  const normalizedSlug = normalizeSlug(slug);
   const fullPath = getProjectPath(normalizedSlug);
 
   if (!fs.existsSync(fullPath)) {
@@ -441,7 +490,7 @@ export async function getProjectBySlug(
 export function saveProject(input: ProjectInput) {
   ensureProjectsDirectory();
 
-  const slug = normalizePostSlug(input.slug || input.title);
+  const slug = normalizeSlug(input.slug || input.title);
   const filePath = getProjectPath(slug);
 
   const createdAt = input.createdAt ?? Date.now();
@@ -519,3 +568,208 @@ Explain the architecture, stack choices, and key implementation decisions.
 `,
   };
 }
+
+// ---------------------------------------------------------------------------
+// Custom components — CRUD
+// ---------------------------------------------------------------------------
+
+function isJsonFile(fileName: string) {
+  return fileName.endsWith(".json");
+}
+
+function parseStoredComponentField(value: unknown): StoredComponentField | null {
+  if (!value || typeof value !== "object") {
+    return null;
+  }
+
+  const record = value as Record<string, unknown>;
+  const name = typeof record.name === "string" ? record.name.trim() : "";
+  const type = record.type;
+  const defaultValue = typeof record.defaultValue === "string" ? record.defaultValue : "";
+  const label = typeof record.label === "string" ? record.label : undefined;
+
+  if (!name || (type !== "text" && type !== "styled" && type !== "array")) {
+    return null;
+  }
+
+  return {
+    name,
+    type,
+    defaultValue,
+    label,
+  };
+}
+
+function parseStoredComponentArray(value: unknown): StoredComponentArray | null {
+  if (!value || typeof value !== "object") {
+    return null;
+  }
+
+  const record = value as Record<string, unknown>;
+  const name = typeof record.name === "string" ? record.name.trim() : "";
+  const itemTemplate = typeof record.itemTemplate === "string" ? record.itemTemplate : "";
+
+  if (!name) {
+    return null;
+  }
+
+  const itemFields = Array.isArray(record.itemFields)
+    ? record.itemFields
+        .map(parseStoredComponentField)
+        .filter((field): field is StoredComponentField => field !== null)
+    : [];
+
+  const items = Array.isArray(record.items)
+    ? record.items
+        .filter(
+          (item): item is Record<string, string> =>
+            Boolean(item) &&
+            typeof item === "object" &&
+            !Array.isArray(item) &&
+            Object.values(item).every((entry) => typeof entry === "string"),
+        )
+        .map((item) => ({ ...item }))
+    : [];
+
+  return {
+    name,
+    itemTemplate,
+    itemFields,
+    items,
+  };
+}
+
+function parseStoredComponentRecord(id: string, value: unknown): StoredComponentRecord | null {
+  if (!value || typeof value !== "object") {
+    return null;
+  }
+
+  const record = value as Record<string, unknown>;
+  const label = typeof record.label === "string" ? record.label.trim() : "";
+  const category =
+    typeof record.category === "string" && record.category.trim()
+      ? record.category.trim()
+      : "Custom";
+  const description =
+    typeof record.description === "string" && record.description.trim()
+      ? record.description.trim()
+      : undefined;
+  const source = typeof record.source === "string" ? record.source : "";
+
+  if (!label || !source.trim()) {
+    return null;
+  }
+
+  return {
+    id: normalizeSlug(typeof record.id === "string" && record.id.trim() ? record.id : id),
+    label,
+    category,
+    description,
+    fields: Array.isArray(record.fields)
+      ? record.fields
+          .map(parseStoredComponentField)
+          .filter((field): field is StoredComponentField => field !== null)
+      : [],
+    arrays: Array.isArray(record.arrays)
+      ? record.arrays
+          .map(parseStoredComponentArray)
+          .filter((array): array is StoredComponentArray => array !== null)
+      : [],
+    source,
+  };
+}
+
+export function getAllComponents(): StoredComponentRecord[] {
+  ensureComponentsDirectory();
+
+  const files = fs.readdirSync(COMPONENTS_DIR).filter(isJsonFile);
+
+  return files
+    .map((fileName) => {
+      const id = fileName.replace(/\.json$/, "");
+      const fullPath = path.join(COMPONENTS_DIR, fileName);
+
+      try {
+        const source = fs.readFileSync(fullPath, "utf8");
+        const parsed = JSON.parse(source) as unknown;
+        return parseStoredComponentRecord(id, parsed);
+      } catch {
+        return null;
+      }
+    })
+    .filter((component): component is StoredComponentRecord => component !== null)
+    .sort((a, b) => {
+      const categoryComparison = a.category.localeCompare(b.category, undefined, {
+        sensitivity: "base",
+      });
+
+      if (categoryComparison !== 0) {
+        return categoryComparison;
+      }
+
+      return a.label.localeCompare(b.label, undefined, { sensitivity: "base" });
+    });
+}
+
+export function getComponentById(id: string): StoredComponentRecord | null {
+  ensureComponentsDirectory();
+
+  const normalizedId = normalizeSlug(id);
+  const filePath = getComponentPath(normalizedId);
+
+  if (!fs.existsSync(filePath)) {
+    return null;
+  }
+
+  try {
+    const source = fs.readFileSync(filePath, "utf8");
+    const parsed = JSON.parse(source) as unknown;
+    return parseStoredComponentRecord(normalizedId, parsed);
+  } catch {
+    return null;
+  }
+}
+
+export function saveComponent(input: StoredComponentInput) {
+  ensureComponentsDirectory();
+
+  const id = normalizeSlug(input.id || input.label);
+  const filePath = getComponentPath(id);
+
+  const component: StoredComponentRecord = {
+    id,
+    label: input.label.trim(),
+    category: input.category.trim() || "Custom",
+    description: input.description?.trim() || undefined,
+    fields: (input.fields ?? []).map((field) => ({ ...field })),
+    arrays: (input.arrays ?? []).map((array) => ({
+      ...array,
+      items: array.items.map((item) => ({ ...item })),
+      itemFields: array.itemFields.map((field) => ({ ...field })),
+    })),
+    source: input.source,
+  };
+
+  fs.writeFileSync(filePath, JSON.stringify(component, null, 2) + "\n", "utf8");
+
+  return id;
+}
+
+export function deleteComponent(id: string) {
+  ensureComponentsDirectory();
+
+  const filePath = getComponentPath(normalizeSlug(id));
+
+  if (fs.existsSync(filePath)) {
+    fs.unlinkSync(filePath);
+  }
+}
+
+export {
+  getAllComponents as getAllCustomComponents,
+  getComponentById as getCustomComponentById,
+  saveComponent as saveCustomComponent,
+  deleteComponent as deleteCustomComponent,
+};
+
+export type CustomComponentMeta = StoredComponentRecord;
