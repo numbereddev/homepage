@@ -132,12 +132,10 @@ export default async function BlogPostPage({ params }: PageProps) {
           className={`relative min-w-0 border-b ${t.color.border} px-6 py-8 pb-20 sm:px-8 sm:py-10 sm:pb-20 lg:border-b-0 lg:border-r overflow-visible`}
         >
           <div data-share-scope>
-            <AnimatedDiv delay={140} duration={900} distance={0}>
-              <div
-                className="prose-flat max-w-none"
-                dangerouslySetInnerHTML={{ __html: post.html }}
-              />
-            </AnimatedDiv>
+            <div
+              className="prose-flat max-w-none"
+              dangerouslySetInnerHTML={{ __html: post.html }}
+            />
           </div>
           <ReactionBar slug={post.slug} initialStats={{ ...initialStats, myReactions: [] }} />
         </article>
