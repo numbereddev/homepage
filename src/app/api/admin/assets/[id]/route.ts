@@ -124,6 +124,7 @@ export async function PATCH(request: Request, context: RouteContext) {
     return NextResponse.json({ error: "Failed to update asset." }, { status: 500 });
   }
 
+  console.log("asset.slug", asset.slug, "updatedAsset.slug", updatedAsset.slug);
   revalidatePath(`/assets/${asset.slug}`);
   revalidatePath(`/assets/${updatedAsset.slug}`);
 

@@ -29,8 +29,7 @@ export async function GET(_request: Request, context: RouteContext) {
     return NextResponse.json({ error: "Asset not found." }, { status: 404 });
   }
 
-  const filePath = path.join(ASSETS_DIR, `${asset.slug}`);
-
+  const filePath = path.join(ASSETS_DIR, asset.slug);
   let stat: fs.Stats;
   try {
     stat = fs.statSync(filePath);

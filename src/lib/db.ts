@@ -913,7 +913,6 @@ export async function getReactionCounts(slug: string): Promise<Record<string, nu
   return counts;
 }
 
-
 /**
  * Returns which emojis a given fingerprint has already reacted with.
  */
