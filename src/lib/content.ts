@@ -2,7 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import matter from "gray-matter";
 import { renderContent, calculateReadingTime } from "./renderer";
-import { normalizeSlug } from "./slugs";
+import { normalizePostSlug } from "./slugs";
 
 // ---------------------------------------------------------------------------
 // Post types
@@ -108,14 +108,14 @@ function isMarkdownFile(fileName: string) {
   return fileName.endsWith(".md");
 }
 
-export { normalizeSlug, slugFromTitle } from "./slugs";
+export { normalizePostSlug as normalizeSlug, slugFromTitle } from "./slugs";
 
 export function getPostPath(slug: string) {
-  return path.join(CONTENT_DIR, `${normalizeSlug(slug)}.md`);
+  return path.join(CONTENT_DIR, `${normalizePostSlug(slug)}.md`);
 }
 
 export function getProjectPath(slug: string) {
-  return path.join(PROJECTS_DIR, `${normalizeSlug(slug)}.md`);
+  return path.join(PROJECTS_DIR, `${normalizePostSlug(slug)}.md`);
 }
 
 function sortPostsByDate(posts: PostMeta[]) {
@@ -251,7 +251,7 @@ export async function getPostBySlug(
 ): Promise<Post | null> {
   ensureContentDirectory();
 
-  const normalizedSlug = normalizeSlug(slug);
+  const normalizedSlug = normalizePostSlug(slug);
   const fullPath = getPostPath(normalizedSlug);
 
   if (!fs.existsSync(fullPath)) {
@@ -277,7 +277,7 @@ export async function getPostBySlug(
 export function savePost(input: PostInput) {
   ensureContentDirectory();
 
-  const slug = normalizeSlug(input.slug || input.title);
+  const slug = normalizePostSlug(input.slug || input.title);
   const filePath = getPostPath(slug);
 
   // Calculate reading time if not provided
@@ -415,7 +415,7 @@ export async function getProjectBySlug(
 ): Promise<Project | null> {
   ensureProjectsDirectory();
 
-  const normalizedSlug = normalizeSlug(slug);
+  const normalizedSlug = normalizePostSlug(slug);
   const fullPath = getProjectPath(normalizedSlug);
 
   if (!fs.existsSync(fullPath)) {
@@ -441,7 +441,7 @@ export async function getProjectBySlug(
 export function saveProject(input: ProjectInput) {
   ensureProjectsDirectory();
 
-  const slug = normalizeSlug(input.slug || input.title);
+  const slug = normalizePostSlug(input.slug || input.title);
   const filePath = getProjectPath(slug);
 
   const createdAt = input.createdAt ?? Date.now();

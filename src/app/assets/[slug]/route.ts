@@ -4,7 +4,7 @@ import path from "node:path";
 import { Readable } from "node:stream";
 
 import { getAssetBySlug } from "@/lib/db";
-import { normalizeSlug } from "@/lib/slugs";
+import { normalizeAssetSlug } from "@/lib/slugs";
 
 const ASSETS_DIR = path.join(process.cwd(), "public", "assets");
 
@@ -19,7 +19,7 @@ export async function GET(_request: Request, context: RouteContext) {
     return NextResponse.json({ error: "Invalid asset slug." }, { status: 400 });
   }
 
-  const normalizedSlug = normalizeSlug(slug);
+  const normalizedSlug = normalizeAssetSlug(slug);
   if (!normalizedSlug) {
     return NextResponse.json({ error: "Invalid asset slug." }, { status: 400 });
   }

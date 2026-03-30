@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { useState, useCallback } from "react";
 import AssetUploadModal, { type AssetData } from "./editor/AssetUploadModal";
-import { normalizeSlug } from "@/lib/slugs";
+import { normalizeAssetSlug } from "@/lib/slugs";
 
 type AssetsManagerProps = {
   initialAssets: AssetData[];
@@ -67,7 +67,7 @@ export default function AssetsManager({ initialAssets }: AssetsManagerProps) {
   const handleSaveEdit = useCallback(async () => {
     if (!editingAsset) return;
 
-    const newSlug = normalizeSlug(editSlug);
+    const newSlug = normalizeAssetSlug(editSlug);
     if (!newSlug) {
       setError("Slug is required.");
       return;

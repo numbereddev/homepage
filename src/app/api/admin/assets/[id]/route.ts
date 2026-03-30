@@ -16,7 +16,7 @@ import {
 
 import { ADMIN_SESSION_COOKIE_NAME } from "@/lib/auth";
 import { getFileExtension } from "@/lib/assets";
-import { normalizeSlug } from "@/lib/slugs";
+import { normalizeAssetSlug } from "@/lib/slugs";
 
 const ASSETS_DIR = path.join(process.cwd(), "public", "assets");
 
@@ -98,7 +98,7 @@ export async function PATCH(request: Request, context: RouteContext) {
   }
 
   const ext = getFileExtension(asset.filename);
-  const newSlug = body.slug ? normalizeSlug(body.slug) + ext : "";
+  const newSlug = body.slug ? normalizeAssetSlug(body.slug) + ext : "";
   if (!newSlug) {
     return NextResponse.json({ error: "Invalid slug." }, { status: 400 });
   }

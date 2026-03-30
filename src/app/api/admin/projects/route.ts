@@ -9,7 +9,7 @@ import {
   saveProject,
   type ProjectMeta,
 } from "@/lib/content";
-import { normalizeSlug } from "@/lib/slugs";
+import { normalizePostSlug } from "@/lib/slugs";
 import { clearExpiredAdminSessions, getAdminSession } from "@/lib/db";
 import { ADMIN_SESSION_COOKIE_NAME } from "@/lib/auth";
 
@@ -166,9 +166,9 @@ export async function POST(request: Request) {
   const title = typeof body.title === "string" ? body.title.trim() : "";
   const excerpt = typeof body.excerpt === "string" ? body.excerpt.trim() : "";
   const content = typeof body.content === "string" ? body.content : "";
-  const requestedSlug = typeof body.slug === "string" ? normalizeSlug(body.slug) : "";
+  const requestedSlug = typeof body.slug === "string" ? normalizePostSlug(body.slug) : "";
   const originalSlug =
-    typeof body.originalSlug === "string" ? normalizeSlug(body.originalSlug) : "";
+    typeof body.originalSlug === "string" ? normalizePostSlug(body.originalSlug) : "";
 
   const createdAt = isValidTimestamp(body.createdAt) ? body.createdAt : Date.now();
   const published = typeof body.published === "boolean" ? body.published : true;
@@ -192,7 +192,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Content is required." }, { status: 400 });
   }
 
-  const finalSlug = requestedSlug || normalizeSlug(title);
+  const finalSlug = requestedSlug || normalizePostSlug(title);
 
   if (!finalSlug) {
     return NextResponse.json({ error: "A valid slug or title is required." }, { status: 400 });

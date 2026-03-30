@@ -13,7 +13,7 @@ import {
 } from "@/lib/db";
 import { ADMIN_SESSION_COOKIE_NAME } from "@/lib/auth";
 import { getFileExtension } from "@/lib/assets";
-import { normalizeSlug } from "@/lib/slugs";
+import { normalizeAssetSlug } from "@/lib/slugs";
 
 const ASSETS_DIR = path.join(process.cwd(), "public", "assets");
 
@@ -92,9 +92,9 @@ export async function POST(request: Request) {
 
   let slug: string = `asset-${Date.now()}${originalExt}`;
   if (typeof customSlug === "string" && customSlug.trim()) {
-    slug = normalizeSlug(`${customSlug}${originalExt}`);
+    slug = normalizeAssetSlug(`${customSlug}${originalExt}`);
   } else if (originalFilename) {
-    slug = normalizeSlug(originalFilename);
+    slug = normalizeAssetSlug(originalFilename);
   }
 
   let counter = 1;

@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useRef } from "react";
 import { Modal } from "./Modal";
-import { normalizeSlug } from "@/lib/slugs";
+import { normalizeAssetSlug } from "@/lib/slugs";
 
 export type AssetData = {
   id: number;
@@ -63,7 +63,7 @@ export default function AssetUploadModal({
       // Auto-generate slug from filename
       if (isAutoSlug) {
         const baseName = file.name.replace(/\.[^.]+$/, "");
-        setSlug(normalizeSlug(baseName));
+        setSlug(normalizeAssetSlug(baseName));
       }
     },
     [isAutoSlug],
