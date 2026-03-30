@@ -126,7 +126,7 @@ export default async function BlogPostPage({ params }: PageProps) {
         postTitle={post.title}
         postUrl={`https://numbered.dev/blog/${post.slug}`}
       />
-      <div className="grid lg:grid-cols-[minmax(0,1fr)_260px] mb-4">
+      <div className="grid lg:grid-cols-[1fr_0.5fr] mb-4">
         {/* ── Article body ── */}
         <article
           className={`relative min-w-0 border-b ${t.color.border} px-6 py-8 pb-20 sm:px-8 sm:py-10 sm:pb-20 lg:border-b-0 lg:border-r overflow-visible`}
@@ -141,9 +141,7 @@ export default async function BlogPostPage({ params }: PageProps) {
         </article>
 
         {/* ── Sidebar ── */}
-        <div
-          className="space-y-5 px-5 py-6 sm:px-6"
-        >
+        <div className="space-y-5 px-5 py-6 sm:px-6">
           {/* Views */}
           <AnimatedDiv delay={220} duration={700} distance={18}>
             <Panel label="Engagement">

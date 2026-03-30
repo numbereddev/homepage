@@ -107,7 +107,7 @@ export function PageShell({
   footerRight?: string;
   narrow?: boolean;
 }) {
-  const maxW = narrow ? "max-w-5xl" : "max-w-6xl";
+  const maxW = narrow ? "max-w-5xl" : "max-w-7xl";
 
   return (
     <div className="min-h-screen text-neutral-100">
