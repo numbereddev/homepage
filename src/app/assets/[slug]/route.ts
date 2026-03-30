@@ -46,6 +46,10 @@ export async function GET(_request: Request, context: RouteContext) {
   }
 
   const ext = getFileExtension(asset.filename);
+  if (ext != getFileExtension(slug)) {
+    return NextResponse.json({ error: "Invalid asset slug." }, { status: 400 });
+  }
+  
   const filePath = path.join(ASSETS_DIR, `${asset.slug}${ext}`);
 
   let stat: fs.Stats;
