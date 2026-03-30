@@ -19,7 +19,7 @@ const WORK_ITEMS = [
   {
     id: "01",
     title: "Systems Engineering",
-    description: "I design (distributed) systems that stay available, and fast, even under real-world circumstances.",
+    description: "I design (distributed) systems that stay available and fast, even under real-world circumstances.",
   },
   {
     id: "02",
