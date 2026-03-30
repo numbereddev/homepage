@@ -169,12 +169,6 @@ export default async function AdminPage({
   const links = await getAllLinks();
   const assets = await getAllAssets();
 
-  function getFileExtension(filename: string): string {
-    const lastDot = filename.lastIndexOf(".");
-    if (lastDot === -1) return "";
-    return filename.slice(lastDot);
-  }
-
   return (
     <AdminDashboard
       initialPosts={posts.map((post) => ({
@@ -214,7 +208,7 @@ export default async function AdminPage({
         mimeType: a.mime_type,
         size: a.size,
         createdAt: a.created_at,
-        url: `/assets/${a.slug}${getFileExtension(a.filename)}`,
+        url: `/assets/${a.slug}`,
       }))}
     />
   );

@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useState, useCallback } from "react";
 import AssetUploadModal, { type AssetData } from "./editor/AssetUploadModal";
+import { normalizeSlug } from "@/lib/content";
 
 type AssetsManagerProps = {
   initialAssets: AssetData[];
@@ -31,15 +32,6 @@ function getMimeCategory(mimeType: string): "image" | "video" | "audio" | "other
   if (mimeType.startsWith("video/")) return "video";
   if (mimeType.startsWith("audio/")) return "audio";
   return "other";
-}
-
-function normalizeSlug(value: string): string {
-  return value
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9\s\-_.]/g, "")
-    .replace(/\s+/g, "-")
-    .replace(/^-|-$/g, "");
 }
 
 export default function AssetsManager({ initialAssets }: AssetsManagerProps) {

@@ -15,6 +15,8 @@ import {
 } from "@/lib/db";
 
 import { ADMIN_SESSION_COOKIE_NAME } from "@/lib/auth";
+import { getFileExtension } from "@/lib/assets";
+import { normalizeSlug } from "@/lib/content";
 
 const ASSETS_DIR = path.join(process.cwd(), "public", "assets");
 
@@ -31,22 +33,6 @@ async function requireAdmin() {
   return await getAdminSession(token);
 }
 
-function normalizeSlug(value: string): string {
-  return value
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9\s\-_.]/g, "")
-    .replace(/\s+/g, "-")
-    .replace(/-+/g, "-")
-    .replace(/^-|-$/g, "");
-}
-
-function getFileExtension(filename: string): string {
-  const lastDot = filename.lastIndexOf(".");
-  if (lastDot === -1) return "";
-  return filename.slice(lastDot);
-}
-
 function toAssetResponse(asset: AssetRow) {
   return {
     id: asset.id,
@@ -55,7 +41,7 @@ function toAssetResponse(asset: AssetRow) {
     mimeType: asset.mime_type,
     size: asset.size,
     createdAt: asset.created_at,
-    url: `/assets/${asset.slug}${getFileExtension(asset.filename)}`,
+    url: `/assets/${asset.slug}`,
   };
 }
 
@@ -65,20 +51,17 @@ type RouteContext = {
 
 export async function GET(_request: Request, context: RouteContext) {
   const session = await requireAdmin();
-
   if (!session) {
     return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
   }
 
   const { id } = await context.params;
   const assetId = parseInt(id, 10);
-
   if (Number.isNaN(assetId)) {
     return NextResponse.json({ error: "Invalid asset ID." }, { status: 400 });
   }
 
   const asset = await getAssetById(assetId);
-
   if (!asset) {
     return NextResponse.json({ error: "Asset not found." }, { status: 404 });
   }
@@ -88,20 +71,17 @@ export async function GET(_request: Request, context: RouteContext) {
 
 export async function PATCH(request: Request, context: RouteContext) {
   const session = await requireAdmin();
-
   if (!session) {
     return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
   }
 
   const { id } = await context.params;
   const assetId = parseInt(id, 10);
-
   if (Number.isNaN(assetId)) {
     return NextResponse.json({ error: "Invalid asset ID." }, { status: 400 });
   }
 
   const asset = await getAssetById(assetId);
-
   if (!asset) {
     return NextResponse.json({ error: "Asset not found." }, { status: 404 });
   }
@@ -117,8 +97,8 @@ export async function PATCH(request: Request, context: RouteContext) {
     return NextResponse.json({ error: "Slug is required." }, { status: 400 });
   }
 
-  const newSlug = normalizeSlug(body.slug);
-
+  const ext = getFileExtension(asset.filename);
+  const newSlug = body.slug ? normalizeSlug(body.slug) + ext : "";
   if (!newSlug) {
     return NextResponse.json({ error: "Invalid slug." }, { status: 400 });
   }
@@ -127,9 +107,8 @@ export async function PATCH(request: Request, context: RouteContext) {
     return NextResponse.json({ error: "Another asset already uses that slug." }, { status: 409 });
   }
 
-  const ext = getFileExtension(asset.filename);
-  const oldFilePath = path.join(ASSETS_DIR, `${asset.slug}${ext}`);
-  const newFilePath = path.join(ASSETS_DIR, `${newSlug}${ext}`);
+  const oldFilePath = path.join(ASSETS_DIR, asset.slug);
+  const newFilePath = path.join(ASSETS_DIR, newSlug);
 
   if (newSlug !== asset.slug && fs.existsSync(oldFilePath)) {
     try {
@@ -141,14 +120,12 @@ export async function PATCH(request: Request, context: RouteContext) {
   }
 
   const updatedAsset = await updateAssetSlug(assetId, newSlug);
-
   if (!updatedAsset) {
     return NextResponse.json({ error: "Failed to update asset." }, { status: 500 });
   }
 
-  // Bust caches for both old and new asset paths so the renamed file is served fresh.
-  revalidatePath(`/assets/${asset.slug}${ext}`);
-  revalidatePath(`/assets/${updatedAsset.slug}${ext}`);
+  revalidatePath(`/assets/${asset.slug}`);
+  revalidatePath(`/assets/${updatedAsset.slug}`);
 
   return NextResponse.json({
     message: "Asset updated successfully.",
@@ -158,27 +135,22 @@ export async function PATCH(request: Request, context: RouteContext) {
 
 export async function DELETE(_request: Request, context: RouteContext) {
   const session = await requireAdmin();
-
   if (!session) {
     return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
   }
 
   const { id } = await context.params;
   const assetId = parseInt(id, 10);
-
   if (Number.isNaN(assetId)) {
     return NextResponse.json({ error: "Invalid asset ID." }, { status: 400 });
   }
 
   const asset = await getAssetById(assetId);
-
   if (!asset) {
     return NextResponse.json({ error: "Asset not found." }, { status: 404 });
   }
 
-  const ext = getFileExtension(asset.filename);
-  const filePath = path.join(ASSETS_DIR, `${asset.slug}${ext}`);
-
+  const filePath = path.join(ASSETS_DIR, asset.slug);
   if (fs.existsSync(filePath)) {
     try {
       fs.unlinkSync(filePath);
@@ -188,9 +160,7 @@ export async function DELETE(_request: Request, context: RouteContext) {
   }
 
   await deleteAsset(assetId);
-
-  // Bust cache for the removed asset path to avoid stale responses.
-  revalidatePath(`/assets/${asset.slug}${ext}`);
+  revalidatePath(`/assets/${asset.slug}`);
 
   return NextResponse.json({
     message: "Asset deleted successfully.",

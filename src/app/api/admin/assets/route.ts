@@ -12,6 +12,8 @@ import {
   type AssetRow,
 } from "@/lib/db";
 import { ADMIN_SESSION_COOKIE_NAME } from "@/lib/auth";
+import { getFileExtension } from "@/lib/assets";
+import { normalizeSlug } from "@/lib/content";
 
 const ASSETS_DIR = path.join(process.cwd(), "public", "assets");
 
@@ -20,7 +22,6 @@ async function requireAdmin() {
 
   const cookieStore = await cookies();
   const token = cookieStore.get(ADMIN_SESSION_COOKIE_NAME)?.value;
-
   if (!token) {
     return null;
   }
@@ -34,22 +35,6 @@ function ensureAssetsDirectory() {
   }
 }
 
-function normalizeSlug(value: string): string {
-  return value
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9\s\-_.]/g, "")
-    .replace(/\s+/g, "-")
-    .replace(/-+/g, "-")
-    .replace(/^-|-$/g, "");
-}
-
-function getFileExtension(filename: string): string {
-  const lastDot = filename.lastIndexOf(".");
-  if (lastDot === -1) return "";
-  return filename.slice(lastDot);
-}
-
 function toAssetResponse(asset: AssetRow) {
   return {
     id: asset.id,
@@ -58,19 +43,17 @@ function toAssetResponse(asset: AssetRow) {
     mimeType: asset.mime_type,
     size: asset.size,
     createdAt: asset.created_at,
-    url: `/assets/${asset.slug}${getFileExtension(asset.filename)}`,
+    url: `/assets/${asset.slug}`,
   };
 }
 
 export async function GET() {
   const session = await requireAdmin();
-
   if (!session) {
     return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
   }
 
   const assets = await getAllAssets();
-
   return NextResponse.json({
     assets: assets.map(toAssetResponse),
   });
@@ -78,7 +61,6 @@ export async function GET() {
 
 export async function POST(request: Request) {
   const session = await requireAdmin();
-
   if (!session) {
     return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
   }
@@ -86,7 +68,6 @@ export async function POST(request: Request) {
   ensureAssetsDirectory();
 
   const contentType = request.headers.get("content-type") || "";
-
   if (!contentType.includes("multipart/form-data")) {
     return NextResponse.json({ error: "Expected multipart/form-data request." }, { status: 400 });
   }
@@ -99,39 +80,31 @@ export async function POST(request: Request) {
   }
 
   const file = formData.get("file");
-  const slugInput = formData.get("slug");
+  const customSlug = formData.get("slug");
 
   if (!file || !(file instanceof File)) {
     return NextResponse.json({ error: "No file provided." }, { status: 400 });
   }
 
-  const originalFilename = file.name || "upload";
+  const originalFilename = file.name.trim();
+  const originalExt = getFileExtension(originalFilename);
   const mimeType = file.type || "application/octet-stream";
-  const size = file.size;
 
-  let slug: string;
-  if (typeof slugInput === "string" && slugInput.trim()) {
-    slug = normalizeSlug(slugInput);
-  } else {
-    const baseName = originalFilename.replace(/\.[^.]+$/, "");
-    slug = normalizeSlug(baseName);
+  let slug: string = `asset-${Date.now()}${originalExt}`;
+  if (typeof customSlug === "string" && customSlug.trim()) {
+    slug = normalizeSlug(`${customSlug}${originalExt}`);
+  } else if (originalFilename) {
+    slug = normalizeSlug(originalFilename);
   }
 
-  if (!slug) {
-    slug = `asset-${Date.now()}`;
-  }
-
-  let finalSlug = slug;
   let counter = 1;
-  while (await assetSlugExists(finalSlug)) {
-    finalSlug = `${slug}-${counter}`;
+  while (await assetSlugExists(slug)) {
+    // replace last file extension with counter and add it before the extension
+    slug = `${slug.replace(/\.[^.]+$/, `-${counter}`)}${originalExt}`;
     counter++;
   }
 
-  const ext = getFileExtension(originalFilename);
-  const savedFilename = `${finalSlug}${ext}`;
-  const filePath = path.join(ASSETS_DIR, savedFilename);
-
+  const filePath = path.join(ASSETS_DIR, slug);
   try {
     const buffer = Buffer.from(await file.arrayBuffer());
     fs.writeFileSync(filePath, buffer);
@@ -141,7 +114,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const asset = await createAsset(finalSlug, originalFilename, mimeType, size);
+    const asset = await createAsset(slug, originalFilename, mimeType, file.size);
 
     return NextResponse.json({
       message: "Asset uploaded successfully.",
