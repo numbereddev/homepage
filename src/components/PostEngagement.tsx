@@ -325,6 +325,8 @@ export function ReactionBar({ slug, initialStats }: Props) {
                 gap: "4px",
                 padding: showCount ? "3px 7px 3px 5px" : "3px 5px",
                 border: reacted ? "1px solid #1d3f60" : "1px solid transparent",
+                // cursor: isPending ? "default" : "pointer",
+                cursor: "pointer !important",
                 background: reacted ? "#091928" : "transparent",
                 transition:
                   "border-color 130ms ease, background 130ms ease, opacity 130ms ease, transform 80ms ease",
